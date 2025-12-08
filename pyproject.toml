@@ -1,0 +1,26 @@
+[project]
+name = "eb-adapters"
+version = "0.1.0"
+description = "Adapter layer for third-party forecasting libraries in Electric Barometer"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-3-Clause" }
+dependencies = [
+    "numpy",
+    "pandas",        # only really needed for Prophet adapter
+]
+
+[project.optional-dependencies]
+prophet = ["prophet>=1.1"]
+statsmodels = ["statsmodels>=0.14"]
+catboost = ["catboost>=1.2"]
+lightgbm = ["lightgbm>=4.0"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "mypy",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
