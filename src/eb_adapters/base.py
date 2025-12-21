@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+"""
+Base adapter interfaces and cloning utilities.
+
+This module defines the minimal adapter contract used throughout the
+ElectricBarometer ecosystem, along with a lightweight cloning helper for
+estimator-like objects.
+
+Adapters are intended to wrap non-scikit-learn forecasting or regression
+libraries (for example, statsmodels, Prophet, or custom models) and expose
+a scikit-learn-like interface so they can be used interchangeably inside
+ElectricBarometer evaluation and selection workflows.
+"""
+
 from typing import Any, Optional
 
 import numpy as np
@@ -7,27 +20,34 @@ import numpy as np
 
 def _clone_model(model: Any) -> Any:
     """
-    Lightweight clone for sklearn-style estimators or adapter-like objects.
+    Lightweight cloning utility for estimator-like or adapter-like objects.
+
+    This function attempts to reconstruct a fresh instance of a model using a
+    best-effort strategy that favors compatibility with scikit-learn-style APIs
+    while remaining usable for custom adapters.
 
     Cloning strategy
     ----------------
-    1. If scikit-learn is available, try ``sklearn.base.clone(model)``.
-    2. Otherwise, if the object implements ``get_params()``, re-instantiate via::
+    The following steps are attempted in order:
+
+    1. If scikit-learn is available, call `sklearn.base.clone(model)`.
+    2. Otherwise, if the object implements `get_params()`, re-instantiate via::
 
            model.__class__(**model.get_params())
 
-    3. As a last resort, call ``model.__class__()`` with no arguments.
+    3. As a final fallback, instantiate the class with no arguments::
 
-    Notes for custom adapters
-    -------------------------
-    If you implement your own adapter (e.g., for statsmodels, Prophet, ARIMA),
-    you have two main options to play nicely with Electric Barometer:
+           model.__class__()
 
-    - Make your adapter "configuration-only" at ``__init__`` time and implement
-      ``get_params()`` so that it can be reconstructed via ``__class__(**params)``.
+    Notes
+    -----
+    For custom adapters, the most reliable approach is to make the adapter
+    configuration-only at initialization time and implement `get_params()`
+    so that the instance can be reconstructed deterministically.
 
-    - Or, if you need custom cloning logic, simply instantiate fresh adapters in
-      your own code before passing them into the selection / evaluation engine.
+    If a model cannot be meaningfully cloned using parameters alone, callers
+    may choose to bypass this helper and explicitly construct fresh adapter
+    instances before passing them into ElectricBarometer workflows.
     """
     # Try sklearn.clone if available
     try:  # pragma: no cover - optional dependency path
@@ -51,38 +71,26 @@ def _clone_model(model: Any) -> Any:
     return model.__class__()
 
 
-# Optional public alias for convenience / backwards-compat
+# Optional public alias for convenience / backwards compatibility
 clone_model = _clone_model
 
 
 class BaseAdapter:
     """
-    Minimal base class for non-sklearn-style forecast engines.
+    Minimal base class defining the adapter contract for ElectricBarometer.
 
-    Subclasses are expected to wrap libraries like statsmodels, Prophet,
-    ARIMA/SARIMAX, or any custom forecasting engine, and present a
-    scikit-learn-like interface:
+    This class documents the expected interface for wrapping non-scikit-learn
+    forecasting or regression engines so they can be evaluated and selected
+    alongside native scikit-learn estimators.
 
-        adapter = MyAdapter(...)
-        adapter.fit(X, y)       # returns self
-        y_pred = adapter.predict(X)
+    Subclasses are expected to present a scikit-learn-like API:
 
-    Requirements
-    ------------
-    - ``fit(self, X, y, sample_weight=None) -> BaseAdapter``
+    - `fit(X, y, sample_weight=None)` returning `self`
+    - `predict(X)` returning a one-dimensional numpy array
 
-        * ``X`` : array-like or ignored (for pure time-series models)
-        * ``y`` : 1D array-like of targets
-        * ``sample_weight`` : optional, can be ignored if not supported.
-
-    - ``predict(self, X) -> array-like``
-
-        Should return a 1D numpy array of predictions for each row in ``X``.
-
-    The Electric Barometer engine does *not* need to know whether a model is a
-    "real" sklearn estimator or an adapter; it simply calls ``.fit()`` and
-    ``.predict()``. This base class is provided as a clear, documented contract
-    for users who want to adapt non-sklearn libraries into the EB ecosystem.
+    The ElectricBarometer engine does not distinguish between native
+    scikit-learn estimators and adapters; it simply calls `fit` and `predict`.
+    This base class serves as a clear, documented contract for adapter authors.
     """
 
     def fit(
@@ -92,20 +100,52 @@ class BaseAdapter:
         sample_weight: Optional[np.ndarray] = None,
     ) -> "BaseAdapter":
         """
-        Fit the underlying forecasting model.
+        Fit the underlying forecasting or regression model.
 
-        Subclasses must override this method and return ``self``.
+        Parameters
+        ----------
+        X : numpy.ndarray
+            Feature matrix. For pure time-series models, this may be ignored
+            or used only for alignment.
+        y : numpy.ndarray
+            One-dimensional target vector.
+        sample_weight : numpy.ndarray | None
+            Optional per-sample weights. Adapters may ignore this argument if
+            weighting is not supported by the underlying model.
+
+        Returns
+        -------
+        BaseAdapter
+            The fitted adapter instance (self).
+
+        Raises
+        ------
+        NotImplementedError
+            If the subclass does not override this method.
         """
         raise NotImplementedError(
-            "BaseAdapter subclasses must implement .fit(X, y, sample_weight=None)."
+            "BaseAdapter subclasses must implement fit(X, y, sample_weight=None)."
         )
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Generate predictions from the fitted model.
 
-        Subclasses must override this method and return a 1D numpy array.
+        Parameters
+        ----------
+        X : numpy.ndarray
+            Feature matrix used to generate predictions.
+
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array of predictions.
+
+        Raises
+        ------
+        NotImplementedError
+            If the subclass does not override this method.
         """
         raise NotImplementedError(
-            "BaseAdapter subclasses must implement .predict(X)."
+            "BaseAdapter subclasses must implement predict(X)."
         )
