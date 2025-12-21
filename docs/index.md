@@ -2,7 +2,7 @@
 
 **eb-adapters** provides a small, focused collection of adapter classes that
 wrap external forecasting and regression libraries so they can be used
-interchangeably inside the ElectricBarometer ecosystem.
+interchangeably inside the Electric Barometer ecosystem.
 
 The goal of this package is *interface normalization*, not modeling innovation.
 Each adapter exposes a consistent, scikit-learn-like API:
@@ -10,9 +10,23 @@ Each adapter exposes a consistent, scikit-learn-like API:
 - `fit(X, y, sample_weight=None)` → returns `self`
 - `predict(X)` → returns a one-dimensional numpy array
 
-This allows ElectricBarometer evaluation, selection, and cost-aware comparison
+This allows Electric Barometer evaluation, selection, and cost-aware comparison
 utilities to operate uniformly across native scikit-learn estimators and
 non-sklearn forecasting engines.
+
+---
+
+## Naming convention
+
+Electric Barometer packages follow a consistent naming convention:
+
+- **Distribution names** (used with `pip install`) use hyphens  
+  e.g. `pip install eb-adapters`
+- **Python import paths** use underscores  
+  e.g. `import eb_adapters`
+
+This follows standard Python packaging practices and avoids ambiguity between
+package names and module imports.
 
 ---
 
@@ -28,7 +42,7 @@ non-sklearn forecasting engines.
 - Perform model selection or ranking
 - Implement forecasting logic itself
 
-Those responsibilities live in other ElectricBarometer packages.
+Those responsibilities live in other Electric Barometer packages.
 
 ---
 
@@ -60,7 +74,7 @@ NumPy-style docstrings in the source code.
 
 ---
 
-## Relationship to other ElectricBarometer packages
+## Relationship to other Electric Barometer packages
 
 - **eb-metrics**: defines cost-aware error and loss functions
 - **eb-evaluation**: performs model evaluation, comparison, and selection
