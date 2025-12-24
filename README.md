@@ -1,5 +1,10 @@
 # Electric Barometer · Adapters (`eb-adapters`)
 
+[![CI](https://github.com/Economistician/eb-adapters/actions/workflows/ci.yml/badge.svg)](https://github.com/Economistician/eb-adapters/actions/workflows/ci.yml)
+![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)
+![Python Versions](https://img.shields.io/pypi/pyversions/eb-adapters)
+![PyPI](https://img.shields.io/pypi/v/eb-adapters)
+
 Adapter interfaces that normalize forecasting model APIs for consistent evaluation within the Electric Barometer ecosystem.
 
 ---
