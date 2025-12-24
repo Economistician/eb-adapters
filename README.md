@@ -1,157 +1,94 @@
-# Electric Barometer Adapters (`eb-adapters`)
+# Electric Barometer · Adapters (`eb-adapters`)
 
-![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)
-![Python Versions](https://img.shields.io/badge/Python-3.10%2B-blue)
-[![Docs](https://img.shields.io/badge/docs-electric--barometer-blue)](https://economistician.github.io/eb-docs/)
-![Project Status](https://img.shields.io/badge/Status-Alpha-yellow)
-
-This repository contains the **model adapter layer** of the *Electric Barometer*
-ecosystem.
-
-`eb-adapters` provides standardized interfaces that adapt common forecasting and
-machine-learning libraries to the Electric Barometer evaluation and readiness
-frameworks, enabling consistent metric computation and model comparison across
-heterogeneous modeling approaches.
-
-Conceptual definitions and evaluation philosophy are maintained in the companion
-research repository:
-**`eb-papers`**.
+Adapter interfaces that normalize forecasting model APIs for consistent evaluation within the Electric Barometer ecosystem.
 
 ---
 
-## Naming convention
+## Overview
 
-Electric Barometer packages follow standard Python packaging conventions:
+`eb-adapters` provides a thin adapter layer that normalizes the interfaces of heterogeneous forecasting libraries into a consistent, evaluation-ready API. It enables models from different frameworks to be trained, predicted, and evaluated using a common contract, without requiring downstream systems to account for library-specific behaviors.
 
-- **Distribution names** (used with `pip install`) use hyphens  
-  e.g. `pip install eb-adapters`
-- **Python import paths** use underscores  
-  e.g. `import eb_adapters`
-
-This distinction is intentional and consistent across the Electric Barometer
-ecosystem.
+Within the Electric Barometer ecosystem, `eb-adapters` serves as the bridge between model implementations and evaluation logic. By isolating framework-specific details behind stable adapter interfaces, the package allows forecasting models to be compared, selected, and assessed consistently across diverse modeling stacks, while remaining usable outside the ecosystem in standalone evaluation workflows.
 
 ---
 
-## Role Within Electric Barometer
+## Role in the Electric Barometer Ecosystem
 
-Within the Electric Barometer ecosystem:
+`eb-adapters` defines the model interface normalization layer used throughout the Electric Barometer ecosystem. It is responsible for wrapping heterogeneous forecasting libraries behind a consistent training and prediction contract, allowing models from different frameworks to be evaluated in a uniform manner.
 
-- **`eb-papers`** defines *concepts, frameworks, and meaning*
-- **`eb-metrics`** implements *individual metrics*
-- **`eb-evaluation`** orchestrates *evaluation workflows*
-- **`eb-adapters`** standardizes *model interfaces*
+This package focuses exclusively on adapting model APIs and handling framework-specific behaviors. It does not perform feature construction, forecast evaluation, metric definition, or decision logic. Those responsibilities are handled by adjacent layers in the ecosystem that generate inputs, apply evaluation logic, or interpret results.
 
-This repository focuses on bridging external modeling libraries into a common,
-evaluation-ready form.
-
----
-
-## What This Library Provides
-
-- **A common adapter base class** defining a unified interface for forecast models
-- **Library-specific adapters** for popular forecasting and ML frameworks
-- **Consistent prediction and evaluation hooks** compatible with EB metrics
-- **Extensible patterns** for adding new model families without changing
-  downstream evaluation logic
-
-Current adapters include support for:
-- CatBoost
-- LightGBM
-- Prophet
-- Statsmodels-based models
-
----
-
-## Scope
-
-This repository focuses on **model adaptation**, not model training algorithms or
-metric definitions.
-
-**In scope:**
-- Wrapping external model APIs behind a consistent adapter interface
-- Standardizing prediction outputs for evaluation
-- Providing compatibility with EB evaluation pipelines
-
-**Out of scope:**
-- Metric definitions and loss formulations (see `eb-metrics`)
-- Evaluation orchestration logic (see `eb-evaluation`)
-- Model training methodology or hyperparameter optimization
-- Conceptual framework definitions (see `eb-papers`)
+By separating model integration concerns from evaluation and metric semantics, `eb-adapters` enables fair, reproducible comparison of forecasting approaches across diverse modeling stacks, while keeping downstream systems agnostic to underlying implementation details.
 
 ---
 
 ## Installation
 
-Install from PyPI:
+`eb-adapters` is distributed as a standard Python package.
 
 ```bash
 pip install eb-adapters
 ```
 
-For development or local use:
+The package supports Python 3.10 and later.
 
-```bash
-pip install -e .
+---
+
+## Core Concepts
+
+- **Interface normalization** — Forecasting models from different libraries are wrapped behind a common training and prediction contract, enabling uniform downstream evaluation.
+- **Thin adaptation layer** — Adapters aim to be minimal and non-invasive, preserving native model behavior while standardizing how models are invoked.
+- **Framework isolation** — Library-specific configuration, defaults, and quirks are contained within adapters, preventing leakage into evaluation or orchestration layers.
+- **Explicit lifecycle boundaries** — Model fitting, prediction, and state management are clearly separated to support reproducibility and controlled execution.
+- **Comparability over abstraction** — Adapters do not attempt to hide meaningful differences between modeling approaches; they exist to make comparison feasible, not to enforce uniformity.
+
+---
+
+## Minimal Example
+
+The example below shows how a forecasting model is wrapped behind a standardized adapter interface so it can be trained and evaluated consistently alongside other models.
+
+```python
+from eb_adapters.statsmodels import StatsModelsAdapter
+from statsmodels.tsa.arima.model import ARIMA
+
+# Define a native model
+model = ARIMA
+
+# Wrap the model with an adapter
+adapter = StatsModelsAdapter(
+    model_class=model,
+    model_kwargs={"order": (1, 1, 1)}
+)
+
+# Fit and predict using a standardized interface
+adapter.fit(y_train)
+y_pred = adapter.predict(horizon=7)
+```
+
+The same interface can be used with tree-based or machine-learning models via a different adapter:
+
+```python
+from eb_adapters.xgboost import XGBoostAdapter
+from xgboost import XGBRegressor
+
+# Define a native model
+model = XGBRegressor
+
+# Wrap the model with an adapter
+adapter = XGBoostAdapter(
+    model_class=model,
+    model_kwargs={"n_estimators": 200, "max_depth": 4}
+)
+
+# Fit and predict using the same contract
+adapter.fit(X_train, y_train)
+y_pred = adapter.predict(X_future)
 ```
 
 ---
 
-## Package Structure
+## License
 
-The repository follows a clean, modern Python package layout:
-
-```text
-eb-adapters/
-├── src/eb_adapters/
-│   ├── base.py            # Abstract adapter base class
-│   ├── catboost.py        # CatBoost model adapter
-│   ├── lightgbm.py        # LightGBM model adapter
-│   ├── prophet.py         # Prophet model adapter
-│   └── statsmodels.py     # Statsmodels-based adapters
-│
-├── tests/
-│   └── adapters/          # Unit tests for adapter implementations
-│
-├── pyproject.toml         # Build and dependency configuration
-├── README.md              # Project documentation
-└── LICENSE                # BSD-3-Clause license
-```
-
----
-
-## Relationship to Other EB Repositories
-
-- **`eb-papers`**  
-  Source of truth for conceptual definitions and evaluation philosophy.
-
-- **`eb-metrics`**  
-  Provides the metric implementations used during evaluation.
-
-- **`eb-evaluation`**  
-  Orchestrates evaluation workflows using adapted models.
-
-- **`eb-adapters`**  
-  Ensures heterogeneous models can be evaluated consistently.
-
-When discrepancies arise, conceptual intent in `eb-papers` should be treated as
-authoritative.
-
----
-
-## Development and Testing
-
-Tests are located under the `tests/` directory and mirror adapter coverage.
-
-To run the test suite:
-
-```bash
-pytest
-```
-
----
-
-## Status
-
-This package is under active development.
-Public APIs may evolve prior to the first stable release.
+BSD 3-Clause License.  
+© 2025 Kyle Corrie.

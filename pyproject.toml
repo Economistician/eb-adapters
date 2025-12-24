@@ -1,3 +1,6 @@
+######################################
+# Project metadata
+######################################
 [project]
 name = "eb-adapters"
 version = "0.1.0"
@@ -5,16 +8,27 @@ description = "Adapter layer for third-party forecasting libraries in Electric B
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
+
+######################################
+# Core runtime dependencies
+######################################
 dependencies = [
     "numpy",
-    "pandas",        # only really needed for Prophet adapter
+    "pandas",
 ]
 
+######################################
+# Optional dependencies (extras)
+######################################
 [project.optional-dependencies]
+
+# Framework integrations
 prophet = ["prophet>=1.1"]
 statsmodels = ["statsmodels>=0.14"]
 catboost = ["catboost>=1.2"]
 lightgbm = ["lightgbm>=4.0"]
+
+# Local developer tooling
 dev = [
     "pytest",
     "pytest-cov",
@@ -22,5 +36,8 @@ dev = [
     "ruff",
 ]
 
+######################################
+# Package discovery
+######################################
 [tool.setuptools.packages.find]
 where = ["src"]
