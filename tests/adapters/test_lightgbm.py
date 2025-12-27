@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -21,8 +23,17 @@ def test_lightgbm_adapter_fit_and_predict_basic():
         max_depth=-1,
     )
 
-    adapter.fit(X, y)
-    y_pred = adapter.predict(X)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=(
+                r"X does not have valid feature names, but LGBMRegressor was fitted "
+                r"with feature names"
+            ),
+            category=UserWarning,
+        )
+        adapter.fit(X, y)
+        y_pred = adapter.predict(X)
 
     assert isinstance(y_pred, np.ndarray)
     assert y_pred.shape == y.shape
@@ -44,8 +55,17 @@ def test_lightgbm_adapter_respects_sample_weight_argument():
         max_depth=3,
     )
 
-    adapter.fit(X, y, sample_weight=w)
-    y_pred = adapter.predict(X)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=(
+                r"X does not have valid feature names, but LGBMRegressor was fitted "
+                r"with feature names"
+            ),
+            category=UserWarning,
+        )
+        adapter.fit(X, y, sample_weight=w)
+        y_pred = adapter.predict(X)
 
     assert isinstance(y_pred, np.ndarray)
     assert y_pred.shape == y.shape

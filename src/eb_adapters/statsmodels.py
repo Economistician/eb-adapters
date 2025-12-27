@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Statsmodels adapters.
 
@@ -15,7 +13,9 @@ This design supports evaluation workflows that expect the `predict(X)` signature
 remaining faithful to how classic univariate ARIMA-family models operate.
 """
 
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
@@ -63,7 +63,7 @@ class SarimaxAdapter(BaseAdapter):
         self,
         order: tuple[int, int, int] = (1, 0, 0),
         seasonal_order: tuple[int, int, int, int] = (0, 0, 0, 0),
-        trend: Optional[str] = None,
+        trend: str | None = None,
         enforce_stationarity: bool = True,
         enforce_invertibility: bool = True,
     ) -> None:
@@ -85,8 +85,8 @@ class SarimaxAdapter(BaseAdapter):
         self,
         X: np.ndarray,
         y: np.ndarray,
-        sample_weight: Optional[np.ndarray] = None,
-    ) -> "SarimaxAdapter":
+        sample_weight: np.ndarray | None = None,
+    ) -> SarimaxAdapter:
         """
         Fit a univariate SARIMAX model on `y`.
 
@@ -162,7 +162,7 @@ class SarimaxAdapter(BaseAdapter):
         forecast = self._result.forecast(steps=n_steps)
         return np.asarray(forecast, dtype=float)
 
-    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+    def get_params(self, deep: bool = True) -> dict[str, Any]:
         """
         Return initialization parameters for cloning utilities.
 
@@ -185,7 +185,7 @@ class SarimaxAdapter(BaseAdapter):
             "enforce_invertibility": self.enforce_invertibility,
         }
 
-    def set_params(self, **params: Any) -> "SarimaxAdapter":
+    def set_params(self, **params: Any) -> SarimaxAdapter:
         """
         Update adapter parameters.
 
@@ -235,7 +235,7 @@ class ArimaAdapter(BaseAdapter):
     def __init__(
         self,
         order: tuple[int, int, int] = (1, 0, 0),
-        trend: Optional[str] = None,
+        trend: str | None = None,
     ) -> None:
         super().__init__()
         self.order = order
@@ -251,8 +251,8 @@ class ArimaAdapter(BaseAdapter):
         self,
         X: np.ndarray,
         y: np.ndarray,
-        sample_weight: Optional[np.ndarray] = None,
-    ) -> "ArimaAdapter":
+        sample_weight: np.ndarray | None = None,
+    ) -> ArimaAdapter:
         """
         Fit a univariate ARIMA model on `y`.
 
@@ -324,7 +324,7 @@ class ArimaAdapter(BaseAdapter):
         forecast = self._result.forecast(steps=n_steps)
         return np.asarray(forecast, dtype=float)
 
-    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+    def get_params(self, deep: bool = True) -> dict[str, Any]:
         """
         Return initialization parameters for cloning utilities.
 
@@ -344,7 +344,7 @@ class ArimaAdapter(BaseAdapter):
             "trend": self.trend,
         }
 
-    def set_params(self, **params: Any) -> "ArimaAdapter":
+    def set_params(self, **params: Any) -> ArimaAdapter:
         """
         Update adapter parameters.
 

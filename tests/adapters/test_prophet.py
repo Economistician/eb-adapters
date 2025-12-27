@@ -5,6 +5,7 @@ import pytest
 pytest.importorskip("prophet", reason="prophet not installed")
 
 from prophet import Prophet  # type: ignore
+
 from eb_adapters.prophet import ProphetAdapter
 
 

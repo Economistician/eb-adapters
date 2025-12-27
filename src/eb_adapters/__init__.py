@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 eb_adapters.
 
@@ -16,19 +14,21 @@ This allows ElectricBarometer evaluation, selection, and cloning utilities to
 treat native scikit-learn estimators and wrapped external models uniformly.
 """
 
+from __future__ import annotations
+
 from .base import BaseAdapter, _clone_model, clone_model
-from .prophet import ProphetAdapter
-from .statsmodels import SarimaxAdapter, ArimaAdapter
 from .catboost import CatBoostAdapter
 from .lightgbm import LightGBMRegressorAdapter
+from .prophet import ProphetAdapter
+from .statsmodels import ArimaAdapter, SarimaxAdapter
 
 __all__ = [
-    "BaseAdapter",
-    "_clone_model",
-    "clone_model",
-    "ProphetAdapter",
-    "SarimaxAdapter",
     "ArimaAdapter",
+    "BaseAdapter",
     "CatBoostAdapter",
     "LightGBMRegressorAdapter",
+    "ProphetAdapter",
+    "SarimaxAdapter",
+    "_clone_model",
+    "clone_model",
 ]

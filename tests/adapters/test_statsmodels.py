@@ -4,7 +4,7 @@ import pytest
 # Skip the whole module if statsmodels is not installed
 pytest.importorskip("statsmodels", reason="statsmodels not installed")
 
-from eb_adapters.statsmodels import SarimaxAdapter, ArimaAdapter
+from eb_adapters.statsmodels import ArimaAdapter, SarimaxAdapter
 
 
 def _make_series(n: int = 30) -> np.ndarray:
@@ -21,7 +21,7 @@ def test_sarimax_adapter_fit_and_predict_basic():
     """
     y = _make_series(40)
     X_train = np.zeros((len(y), 1))  # ignored by the adapter
-    X_val = np.zeros((10, 1))        # just controls forecast horizon
+    X_val = np.zeros((10, 1))  # just controls forecast horizon
 
     adapter = SarimaxAdapter(order=(1, 0, 0), seasonal_order=(0, 0, 0, 0))
     adapter.fit(X_train, y)

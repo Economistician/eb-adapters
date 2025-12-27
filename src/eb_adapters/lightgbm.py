@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 LightGBM adapter.
 
@@ -13,15 +11,15 @@ The adapter is designed for use within the ElectricBarometer ecosystem and aims 
   reconstruct the instance consistently.
 - Optional-dependency safe: importing this module does not require LightGBM, but
   instantiating `LightGBMRegressorAdapter` does.
-
 """
 
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
 from .base import BaseAdapter
-
 
 # Optional LightGBM dependency guard ------------------------------------------
 try:  # pragma: no cover - optional dependency
@@ -61,7 +59,6 @@ class LightGBMRegressorAdapter(BaseAdapter):
     ... )
     >>> # X, y are numpy arrays (or array-like)
     >>> # model.fit(X, y).predict(X)
-
     """
 
     def __init__(self, **lgbm_params: Any) -> None:
@@ -72,10 +69,10 @@ class LightGBMRegressorAdapter(BaseAdapter):
             )
 
         # Store init params so the adapter is cloneable.
-        self.lgbm_params: Dict[str, Any] = dict(lgbm_params)
+        self.lgbm_params: dict[str, Any] = dict(lgbm_params)
 
         # Underlying LightGBM model instance
-        self.model: Optional[LGBMRegressor] = LGBMRegressor(**self.lgbm_params)
+        self.model: LGBMRegressor | None = LGBMRegressor(**self.lgbm_params)
 
     # ------------------------------------------------------------------
     # Fit
@@ -84,8 +81,8 @@ class LightGBMRegressorAdapter(BaseAdapter):
         self,
         X: np.ndarray,
         y: np.ndarray,
-        sample_weight: Optional[np.ndarray] = None,
-    ) -> "LightGBMRegressorAdapter":
+        sample_weight: np.ndarray | None = None,
+    ) -> LightGBMRegressorAdapter:
         """
         Fit the underlying `lightgbm.LGBMRegressor`.
 
@@ -108,7 +105,6 @@ class LightGBMRegressorAdapter(BaseAdapter):
         ------
         RuntimeError
             If LightGBM is not available or the internal model is not initialized.
-
         """
         if not HAS_LIGHTGBM or self.model is None:
             raise RuntimeError(
@@ -148,7 +144,6 @@ class LightGBMRegressorAdapter(BaseAdapter):
         ------
         RuntimeError
             If the adapter has not been fit yet.
-
         """
         if self.model is None:
             raise RuntimeError(
@@ -162,7 +157,7 @@ class LightGBMRegressorAdapter(BaseAdapter):
     # ------------------------------------------------------------------
     # Param API for clone_model() compatibility
     # ------------------------------------------------------------------
-    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+    def get_params(self, deep: bool = True) -> dict[str, Any]:
         """
         Return initialization parameters for cloning utilities.
 
@@ -176,12 +171,11 @@ class LightGBMRegressorAdapter(BaseAdapter):
         -------
         dict[str, Any]
             A shallow copy of the stored initialization parameters.
-
         """
         _ = deep  # intentionally unused; kept for API compatibility
         return dict(self.lgbm_params)
 
-    def set_params(self, **params: Any) -> "LightGBMRegressorAdapter":
+    def set_params(self, **params: Any) -> LightGBMRegressorAdapter:
         """
         Update parameters and rebuild the underlying LightGBM model.
 
@@ -199,7 +193,6 @@ class LightGBMRegressorAdapter(BaseAdapter):
         -----
         This method updates `self.lgbm_params` and then re-instantiates
         `lightgbm.LGBMRegressor` using the merged parameter set.
-
         """
         self.lgbm_params.update(params)
         if HAS_LIGHTGBM:

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 CatBoost adapter.
 
@@ -13,15 +11,15 @@ The adapter is designed for use within the ElectricBarometer ecosystem and aims 
   can reconstruct the instance consistently.
 - Optional-dependency safe: importing this module does not require CatBoost, but
   instantiating `CatBoostAdapter` does.
-
 """
 
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
 from .base import BaseAdapter
-
 
 # Optional CatBoost dependency guard -----------------------------------------
 try:  # pragma: no cover - optional dependency
@@ -64,7 +62,6 @@ class CatBoostAdapter(BaseAdapter):
     ... )
     >>> # X, y are numpy arrays (or array-like)
     >>> # model.fit(X, y).predict(X)
-
     """
 
     def __init__(self, **params: Any) -> None:
@@ -75,14 +72,14 @@ class CatBoostAdapter(BaseAdapter):
             )
 
         # Store params for clone() compatibility
-        self.params: Dict[str, Any] = dict(params)
+        self.params: dict[str, Any] = dict(params)
 
         # Default: no spammy training logs
         if "verbose" not in self.params:
             self.params["verbose"] = False
 
         # Instantiate the underlying CatBoost model
-        self.model: Optional[CatBoostRegressor] = CatBoostRegressor(**self.params)
+        self.model: CatBoostRegressor | None = CatBoostRegressor(**self.params)
 
     # ------------------------------------------------------------------
     # Fit
@@ -91,8 +88,8 @@ class CatBoostAdapter(BaseAdapter):
         self,
         X: np.ndarray,
         y: np.ndarray,
-        sample_weight: Optional[np.ndarray] = None,
-    ) -> "CatBoostAdapter":
+        sample_weight: np.ndarray | None = None,
+    ) -> CatBoostAdapter:
         """
         Fit the underlying `catboost.CatBoostRegressor`.
 
@@ -115,7 +112,6 @@ class CatBoostAdapter(BaseAdapter):
         ------
         RuntimeError
             If CatBoost is not available or the internal model is not initialized.
-
         """
         if not HAS_CATBOOST or self.model is None:
             raise RuntimeError(
@@ -155,7 +151,6 @@ class CatBoostAdapter(BaseAdapter):
         ------
         RuntimeError
             If the adapter has not been fit yet.
-
         """
         if self.model is None:
             raise RuntimeError("CatBoostAdapter has not been fit yet. Call `fit(...)` first.")
@@ -167,7 +162,7 @@ class CatBoostAdapter(BaseAdapter):
     # ------------------------------------------------------------------
     # Param API for clone_model() compatibility
     # ------------------------------------------------------------------
-    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+    def get_params(self, deep: bool = True) -> dict[str, Any]:
         """
         Return initialization parameters for cloning utilities.
 
@@ -181,12 +176,11 @@ class CatBoostAdapter(BaseAdapter):
         -------
         dict[str, Any]
             A shallow copy of the stored initialization parameters.
-
         """
         _ = deep  # intentionally unused; kept for API compatibility
         return dict(self.params)
 
-    def set_params(self, **params: Any) -> "CatBoostAdapter":
+    def set_params(self, **params: Any) -> CatBoostAdapter:
         """
         Update parameters and rebuild the underlying CatBoost model.
 
@@ -204,7 +198,6 @@ class CatBoostAdapter(BaseAdapter):
         -----
         This method updates `self.params` and then re-instantiates
         `catboost.CatBoostRegressor` using the merged parameter set.
-
         """
         self.params.update(params)
         if HAS_CATBOOST:

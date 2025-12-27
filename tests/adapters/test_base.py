@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from eb_adapters.base import _clone_model, BaseAdapter
+from eb_adapters.base import BaseAdapter, _clone_model
 
 
 def test_base_adapter_fit_raises_not_implemented():
@@ -23,7 +23,7 @@ def test_clone_model_with_sklearn_estimator_if_available():
     If scikit-learn is installed, _clone_model should delegate to sklearn.clone
     and produce an independent estimator with the same parameters.
     """
-    sklearn = pytest.importorskip("sklearn", reason="sklearn not installed")
+    pytest.importorskip("sklearn", reason="sklearn not installed")
     from sklearn.dummy import DummyRegressor  # type: ignore
 
     original = DummyRegressor(strategy="mean", constant=None)

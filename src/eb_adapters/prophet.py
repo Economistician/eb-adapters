@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Prophet adapter.
 
@@ -12,7 +10,9 @@ array-like inputs into that canonical format for use within the
 ElectricBarometer ecosystem.
 """
 
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
@@ -59,10 +59,9 @@ class ProphetAdapter(BaseAdapter):
     >>> model = ProphetAdapter(model=base)
     >>> # X contains datetimes, y contains numeric targets
     >>> # model.fit(X, y).predict(X)
-
     """
 
-    def __init__(self, model: Optional[Any] = None) -> None:
+    def __init__(self, model: Any | None = None) -> None:
         if model is None:
             try:
                 from prophet import Prophet as _Prophet  # type: ignore
@@ -83,8 +82,8 @@ class ProphetAdapter(BaseAdapter):
         self,
         X: np.ndarray,
         y: np.ndarray,
-        sample_weight: Optional[np.ndarray] = None,  # ignored
-    ) -> "ProphetAdapter":
+        sample_weight: np.ndarray | None = None,  # ignored
+    ) -> ProphetAdapter:
         """
         Fit the underlying Prophet model.
 

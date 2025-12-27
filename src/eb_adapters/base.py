@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Base adapter interfaces and cloning utilities.
 
@@ -13,7 +11,9 @@ a scikit-learn-like interface so they can be used interchangeably inside
 ElectricBarometer evaluation and selection workflows.
 """
 
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 
@@ -97,8 +97,8 @@ class BaseAdapter:
         self,
         X: np.ndarray,
         y: np.ndarray,
-        sample_weight: Optional[np.ndarray] = None,
-    ) -> "BaseAdapter":
+        sample_weight: np.ndarray | None = None,
+    ) -> BaseAdapter:
         """
         Fit the underlying forecasting or regression model.
 
@@ -146,6 +146,4 @@ class BaseAdapter:
         NotImplementedError
             If the subclass does not override this method.
         """
-        raise NotImplementedError(
-            "BaseAdapter subclasses must implement predict(X)."
-        )
+        raise NotImplementedError("BaseAdapter subclasses must implement predict(X).")
