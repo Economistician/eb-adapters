@@ -95,5 +95,5 @@ y_pred = adapter.predict(X_future)
 
 ## License
 
-BSD 3-Clause License.  
+BSD 3-Clause License.
 © 2025 Kyle Corrie.

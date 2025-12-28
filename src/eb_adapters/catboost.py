@@ -15,20 +15,27 @@ The adapter is designed for use within the ElectricBarometer ecosystem and aims 
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
 from .base import BaseAdapter
 
 # Optional CatBoost dependency guard -----------------------------------------
-try:  # pragma: no cover - optional dependency
+if TYPE_CHECKING:
+    # Resolution for reportMissingImports: ignore missing optional library
     from catboost import CatBoostRegressor  # type: ignore
 
+    # Resolution for reportUndefinedVariable: define flag for type checker
     HAS_CATBOOST = True
-except Exception:  # pragma: no cover - optional dependency
-    CatBoostRegressor = None
-    HAS_CATBOOST = False
+else:
+    try:  # pragma: no cover - optional dependency
+        from catboost import CatBoostRegressor
+
+        HAS_CATBOOST = True
+    except Exception:  # pragma: no cover - optional dependency
+        CatBoostRegressor = None
+        HAS_CATBOOST = False
 
 
 class CatBoostAdapter(BaseAdapter):
@@ -79,7 +86,9 @@ class CatBoostAdapter(BaseAdapter):
             self.params["verbose"] = False
 
         # Instantiate the underlying CatBoost model
-        self.model: CatBoostRegressor | None = CatBoostRegressor(**self.params)
+        # Resolution for reportOptionalCall: Cast the constructor to Any to bypass None-check
+        ctor = cast(Any, CatBoostRegressor)
+        self.model: Any | None = ctor(**self.params)
 
     # ------------------------------------------------------------------
     # Fit
@@ -101,7 +110,7 @@ class CatBoostAdapter(BaseAdapter):
             Target vector of shape (n_samples,).
         sample_weight : numpy.ndarray | None
             Optional per-sample weights of shape (n_samples,). If provided, this is
-            forwarded to CatBoost training.
+            forwardly to CatBoost training.
 
         Returns
         -------
@@ -122,11 +131,13 @@ class CatBoostAdapter(BaseAdapter):
         X_arr = np.asarray(X)
         y_arr = np.asarray(y, dtype=float)
 
+        # Resolution for reportOptionalCall: use a local typed variable
+        m = cast(Any, self.model)
         if sample_weight is not None:
             sw_arr = np.asarray(sample_weight, dtype=float)
-            self.model.fit(X_arr, y_arr, sample_weight=sw_arr)
+            m.fit(X_arr, y_arr, sample_weight=sw_arr)
         else:
-            self.model.fit(X_arr, y_arr)
+            m.fit(X_arr, y_arr)
 
         return self
 
@@ -156,7 +167,9 @@ class CatBoostAdapter(BaseAdapter):
             raise RuntimeError("CatBoostAdapter has not been fit yet. Call `fit(...)` first.")
 
         X_arr = np.asarray(X)
-        preds = self.model.predict(X_arr)
+        # Resolution for reportOptionalCall
+        m = cast(Any, self.model)
+        preds = m.predict(X_arr)
         return np.asarray(preds, dtype=float).ravel()
 
     # ------------------------------------------------------------------
@@ -201,7 +214,8 @@ class CatBoostAdapter(BaseAdapter):
         """
         self.params.update(params)
         if HAS_CATBOOST:
-            self.model = CatBoostRegressor(**self.params)
+            ctor = cast(Any, CatBoostRegressor)
+            self.model = ctor(**self.params)
         return self
 
     # ------------------------------------------------------------------

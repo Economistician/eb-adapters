@@ -15,20 +15,27 @@ The adapter is designed for use within the ElectricBarometer ecosystem and aims 
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
 from .base import BaseAdapter
 
 # Optional LightGBM dependency guard ------------------------------------------
-try:  # pragma: no cover - optional dependency
+if TYPE_CHECKING:
+    # Resolution for reportMissingImports: ignore missing optional library
     from lightgbm import LGBMRegressor  # type: ignore
 
+    # Resolution for reportUndefinedVariable: define flag for type checker
     HAS_LIGHTGBM = True
-except Exception:  # pragma: no cover - optional dependency
-    LGBMRegressor = None
-    HAS_LIGHTGBM = False
+else:
+    try:  # pragma: no cover - optional dependency
+        from lightgbm import LGBMRegressor
+
+        HAS_LIGHTGBM = True
+    except Exception:  # pragma: no cover - optional dependency
+        LGBMRegressor = None
+        HAS_LIGHTGBM = False
 
 
 class LightGBMRegressorAdapter(BaseAdapter):
@@ -72,7 +79,9 @@ class LightGBMRegressorAdapter(BaseAdapter):
         self.lgbm_params: dict[str, Any] = dict(lgbm_params)
 
         # Underlying LightGBM model instance
-        self.model: LGBMRegressor | None = LGBMRegressor(**self.lgbm_params)
+        # Resolution for reportOptionalCall: Cast the constructor to Any to bypass None-check
+        ctor = cast(Any, LGBMRegressor)
+        self.model: Any | None = ctor(**self.lgbm_params)
 
     # ------------------------------------------------------------------
     # Fit
@@ -115,11 +124,13 @@ class LightGBMRegressorAdapter(BaseAdapter):
         X_arr = np.asarray(X)
         y_arr = np.asarray(y, dtype=float)
 
+        # Resolution for reportOptionalCall: Use cast to ensure callability
+        m = cast(Any, self.model)
         if sample_weight is not None:
             sw_arr = np.asarray(sample_weight, dtype=float)
-            self.model.fit(X_arr, y_arr, sample_weight=sw_arr)
+            m.fit(X_arr, y_arr, sample_weight=sw_arr)
         else:
-            self.model.fit(X_arr, y_arr)
+            m.fit(X_arr, y_arr)
 
         return self
 
@@ -151,7 +162,9 @@ class LightGBMRegressorAdapter(BaseAdapter):
             )
 
         X_arr = np.asarray(X)
-        preds = self.model.predict(X_arr)
+        # Resolution for reportOptionalCall: Use cast to ensure callability
+        m = cast(Any, self.model)
+        preds = m.predict(X_arr)
         return np.asarray(preds, dtype=float).ravel()
 
     # ------------------------------------------------------------------
@@ -196,7 +209,8 @@ class LightGBMRegressorAdapter(BaseAdapter):
         """
         self.lgbm_params.update(params)
         if HAS_LIGHTGBM:
-            self.model = LGBMRegressor(**self.lgbm_params)
+            ctor = cast(Any, LGBMRegressor)
+            self.model = ctor(**self.lgbm_params)
         return self
 
     # ------------------------------------------------------------------

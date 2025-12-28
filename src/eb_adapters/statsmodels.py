@@ -15,20 +15,27 @@ remaining faithful to how classic univariate ARIMA-family models operate.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
 from .base import BaseAdapter
 
 # Optional statsmodels support ------------------------------------------------
-try:  # pragma: no cover - import guard
-    import statsmodels.api as _sm  # type: ignore[import]
+if TYPE_CHECKING:
+    # Resolution for reportMissingImports: ignore missing optional library
+    import statsmodels.api as _sm  # type: ignore
 
+    # Resolution for reportUndefinedVariable: define flag for type checker
     HAS_STATSMODELS = True
-except Exception:  # pragma: no cover - import guard
-    _sm = None
-    HAS_STATSMODELS = False
+else:
+    try:  # pragma: no cover - import guard
+        import statsmodels.api as _sm  # type: ignore[import]
+
+        HAS_STATSMODELS = True
+    except Exception:  # pragma: no cover - import guard
+        _sm = None
+        HAS_STATSMODELS = False
 
 
 class SarimaxAdapter(BaseAdapter):
@@ -50,13 +57,6 @@ class SarimaxAdapter(BaseAdapter):
         Whether to enforce stationarity in the SARIMAX model.
     enforce_invertibility : bool, default True
         Whether to enforce invertibility in the SARIMAX model.
-
-    Notes
-    -----
-    - `X` is ignored during fitting. It is only used at prediction time to
-      determine the forecast horizon (`n_steps = len(X)`).
-    - This adapter stores initialization parameters via `get_params()` so cloning
-      utilities can reconstruct the adapter.
     """
 
     def __init__(
@@ -74,7 +74,7 @@ class SarimaxAdapter(BaseAdapter):
         self.enforce_stationarity = enforce_stationarity
         self.enforce_invertibility = enforce_invertibility
 
-        self._result = None
+        self._result: Any | None = None
 
         # Failure is intentionally delayed until fit(); this flag supports
         # feature detection and optional-dependency behavior.
@@ -89,25 +89,6 @@ class SarimaxAdapter(BaseAdapter):
     ) -> SarimaxAdapter:
         """
         Fit a univariate SARIMAX model on `y`.
-
-        Parameters
-        ----------
-        X : numpy.ndarray
-            Ignored. Present for API compatibility.
-        y : numpy.ndarray
-            Target series of shape (n_samples,).
-        sample_weight : numpy.ndarray | None
-            Accepted for API compatibility but ignored by this adapter.
-
-        Returns
-        -------
-        SarimaxAdapter
-            The fitted adapter (self), allowing method chaining.
-
-        Raises
-        ------
-        ImportError
-            If `statsmodels` is not installed.
         """
         _ = X  # intentionally unused; kept for API compatibility
         _ = sample_weight  # intentionally unused; kept for API compatibility
@@ -120,7 +101,9 @@ class SarimaxAdapter(BaseAdapter):
 
         y_arr = np.asarray(y, dtype=float)
 
-        model = _sm.tsa.statespace.SARIMAX(
+        # Resolution for reportOptionalMemberAccess: cast the module to Any
+        sm_mod = cast(Any, _sm)
+        model = sm_mod.tsa.statespace.SARIMAX(
             y_arr,
             order=self.order,
             seasonal_order=self.seasonal_order,
@@ -136,21 +119,6 @@ class SarimaxAdapter(BaseAdapter):
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Forecast `len(X)` steps ahead from the end of the training sample.
-
-        Parameters
-        ----------
-        X : numpy.ndarray
-            Array-like placeholder used to determine the forecast horizon.
-
-        Returns
-        -------
-        numpy.ndarray
-            Forecast values of shape (len(X),).
-
-        Raises
-        ------
-        RuntimeError
-            If the adapter has not been fit yet.
         """
         if self._result is None:
             raise RuntimeError("SarimaxAdapter has not been fit yet. Call `fit(X, y)` first.")
@@ -159,24 +127,13 @@ class SarimaxAdapter(BaseAdapter):
         if n_steps <= 0:
             return np.array([], dtype=float)
 
-        forecast = self._result.forecast(steps=n_steps)
+        # Resolution for reportAttributeAccessIssue: cast result to Any
+        res = cast(Any, self._result)
+        forecast = res.forecast(steps=n_steps)
         return np.asarray(forecast, dtype=float)
 
     def get_params(self, deep: bool = True) -> dict[str, Any]:
-        """
-        Return initialization parameters for cloning utilities.
-
-        Parameters
-        ----------
-        deep : bool
-            Included for scikit-learn compatibility.
-
-        Returns
-        -------
-        dict[str, Any]
-            Initialization parameters that can be passed back to `__init__`.
-        """
-        _ = deep  # intentionally unused; kept for API compatibility
+        _ = deep
         return {
             "order": self.order,
             "seasonal_order": self.seasonal_order,
@@ -186,19 +143,6 @@ class SarimaxAdapter(BaseAdapter):
         }
 
     def set_params(self, **params: Any) -> SarimaxAdapter:
-        """
-        Update adapter parameters.
-
-        Parameters
-        ----------
-        **params
-            Parameters to set as attributes on the adapter instance.
-
-        Returns
-        -------
-        SarimaxAdapter
-            The updated adapter instance (self).
-        """
         for k, v in params.items():
             setattr(self, k, v)
         return self
@@ -213,23 +157,6 @@ class SarimaxAdapter(BaseAdapter):
 class ArimaAdapter(BaseAdapter):
     """
     Adapter for `statsmodels` ARIMA.
-
-    This wrapper fits a univariate ARIMA model on `y` and produces forecasts for
-    `len(X)` steps ahead when `predict(X)` is called.
-
-    Parameters
-    ----------
-    order : tuple[int, int, int], default (1, 0, 0)
-        ARIMA (p, d, q) order.
-    trend : str | None, default None
-        Trend specification forwarded to `statsmodels.tsa.ARIMA`.
-
-    Notes
-    -----
-    - `X` is ignored during fitting. It is only used at prediction time to
-      determine the forecast horizon (`n_steps = len(X)`).
-    - This adapter stores initialization parameters via `get_params()` so cloning
-      utilities can reconstruct the adapter.
     """
 
     def __init__(
@@ -240,10 +167,8 @@ class ArimaAdapter(BaseAdapter):
         super().__init__()
         self.order = order
         self.trend = trend
-        self._result = None
+        self._result: Any | None = None
 
-        # Failure is intentionally delayed until fit(); this flag supports
-        # feature detection and optional-dependency behavior.
         if not HAS_STATSMODELS:
             pass
 
@@ -255,28 +180,9 @@ class ArimaAdapter(BaseAdapter):
     ) -> ArimaAdapter:
         """
         Fit a univariate ARIMA model on `y`.
-
-        Parameters
-        ----------
-        X : numpy.ndarray
-            Ignored. Present for API compatibility.
-        y : numpy.ndarray
-            Target series of shape (n_samples,).
-        sample_weight : numpy.ndarray | None
-            Accepted for API compatibility but ignored by this adapter.
-
-        Returns
-        -------
-        ArimaAdapter
-            The fitted adapter (self), allowing method chaining.
-
-        Raises
-        ------
-        ImportError
-            If `statsmodels` is not installed.
         """
-        _ = X  # intentionally unused; kept for API compatibility
-        _ = sample_weight  # intentionally unused; kept for API compatibility
+        _ = X
+        _ = sample_weight
 
         if not HAS_STATSMODELS:
             raise ImportError(
@@ -286,7 +192,9 @@ class ArimaAdapter(BaseAdapter):
 
         y_arr = np.asarray(y, dtype=float)
 
-        model = _sm.tsa.ARIMA(
+        # Resolution for reportOptionalMemberAccess
+        sm_mod = cast(Any, _sm)
+        model = sm_mod.tsa.ARIMA(
             y_arr,
             order=self.order,
             trend=self.trend,
@@ -297,22 +205,7 @@ class ArimaAdapter(BaseAdapter):
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
-        Forecast `len(X)` steps ahead from the end of the training sample.
-
-        Parameters
-        ----------
-        X : numpy.ndarray
-            Array-like placeholder used to determine the forecast horizon.
-
-        Returns
-        -------
-        numpy.ndarray
-            Forecast values of shape (len(X),).
-
-        Raises
-        ------
-        RuntimeError
-            If the adapter has not been fit yet.
+        Forecast `len(X)` steps ahead.
         """
         if self._result is None:
             raise RuntimeError("ArimaAdapter has not been fit yet. Call `fit(X, y)` first.")
@@ -321,43 +214,19 @@ class ArimaAdapter(BaseAdapter):
         if n_steps <= 0:
             return np.array([], dtype=float)
 
-        forecast = self._result.forecast(steps=n_steps)
+        # Resolution for reportAttributeAccessIssue
+        res = cast(Any, self._result)
+        forecast = res.forecast(steps=n_steps)
         return np.asarray(forecast, dtype=float)
 
     def get_params(self, deep: bool = True) -> dict[str, Any]:
-        """
-        Return initialization parameters for cloning utilities.
-
-        Parameters
-        ----------
-        deep : bool
-            Included for scikit-learn compatibility.
-
-        Returns
-        -------
-        dict[str, Any]
-            Initialization parameters that can be passed back to `__init__`.
-        """
-        _ = deep  # intentionally unused; kept for API compatibility
+        _ = deep
         return {
             "order": self.order,
             "trend": self.trend,
         }
 
     def set_params(self, **params: Any) -> ArimaAdapter:
-        """
-        Update adapter parameters.
-
-        Parameters
-        ----------
-        **params
-            Parameters to set as attributes on the adapter instance.
-
-        Returns
-        -------
-        ArimaAdapter
-            The updated adapter instance (self).
-        """
         for k, v in params.items():
             setattr(self, k, v)
         return self

@@ -20,9 +20,9 @@ non-sklearn forecasting engines.
 
 Electric Barometer packages follow a consistent naming convention:
 
-- **Distribution names** (used with `pip install`) use hyphens  
+- **Distribution names** (used with `pip install`) use hyphens
   e.g. `pip install eb-adapters`
-- **Python import paths** use underscores  
+- **Python import paths** use underscores
   e.g. `import eb_adapters`
 
 This follows standard Python packaging practices and avoids ambiguity between
