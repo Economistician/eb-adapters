@@ -3,7 +3,7 @@
 ######################################
 [project]
 name = "eb-adapters"
-version = "0.2.2"
+version = "0.2.3"
 description = "Adapter layer for third-party forecasting libraries in Electric Barometer"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -44,7 +44,8 @@ dependencies = [
 prophet = ["prophet>=1.1"]
 statsmodels = ["statsmodels>=0.14"]
 catboost = ["catboost>=1.2"]
-lightgbm = ["lightgbm>=4.0"]
+# Added scikit-learn as it is required for LightGBM's sklearn-compatible wrappers
+lightgbm = ["lightgbm>=4.0", "scikit-learn"]
 
 # Local developer tooling
 dev = [
