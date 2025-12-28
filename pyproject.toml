@@ -27,12 +27,12 @@ classifiers = [
 # Core runtime dependencies
 ######################################
 dependencies = [
-    "numpy",
-    "pandas",
+  "numpy",
+  "pandas",
 
-    # Electric Barometer compatibility band (0.2.x)
-    "eb-metrics>=0.2,<0.3",
-    "eb-evaluation>=0.2,<0.3",
+  # Electric Barometer compatibility band (0.2.x)
+  "eb-metrics>=0.2,<0.3",
+  "eb-evaluation>=0.2,<0.3",
 ]
 
 ######################################
@@ -49,16 +49,31 @@ lightgbm = ["lightgbm>=4.0", "scikit-learn"]
 
 # Local developer tooling
 dev = [
-    "pytest",
-    "pytest-cov",
-    "mypy",
-    "ruff",
+  "pytest",
+  "pytest-cov",
+  "mypy",
+  "ruff",
 ]
 
 # Combined extra including all framework integrations and development tools.
 # Useful for full local testing or comprehensive CI environments.
+#
+# NOTE:
+# Avoid self-referential extras like "eb-adapters[prophet,...]" inside optional-dependencies.
+# Instead, define "all" as the explicit union of the desired requirements.
 all = [
-    "eb-adapters[prophet,statsmodels,catboost,lightgbm,dev]"
+  # Framework integrations
+  "prophet>=1.1",
+  "statsmodels>=0.14",
+  "catboost>=1.2",
+  "lightgbm>=4.0",
+  "scikit-learn",
+
+  # Local developer tooling
+  "pytest",
+  "pytest-cov",
+  "mypy",
+  "ruff",
 ]
 
 ######################################
