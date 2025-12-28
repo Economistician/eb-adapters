@@ -54,6 +54,12 @@ dev = [
     "ruff",
 ]
 
+# Combined extra including all framework integrations and development tools.
+# Useful for full local testing or comprehensive CI environments.
+all = [
+    "eb-adapters[prophet,statsmodels,catboost,lightgbm,dev]"
+]
+
 ######################################
 # Package discovery
 ######################################
