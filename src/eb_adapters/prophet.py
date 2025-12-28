@@ -123,7 +123,11 @@ class ProphetAdapter(BaseAdapter):
         y_arr = np.asarray(y, dtype=float)
 
         df = pd.DataFrame({"ds": ds, "y": y_arr})
+
+        # Type guard for Pyright: ensures self.model is not None
+        assert self.model is not None, "Prophet model not initialized."
         self.model.fit(df)
+
         return self
 
     # ------------------------------------------------------------------
@@ -162,6 +166,9 @@ class ProphetAdapter(BaseAdapter):
 
         ds = pd.to_datetime(X_arr)
         df_future = pd.DataFrame({"ds": ds})
+
+        # Type guard for Pyright: ensures self.model is not None
+        assert self.model is not None, "Prophet model not initialized."
         forecast = self.model.predict(df_future)
 
         if "yhat" not in forecast.columns:
