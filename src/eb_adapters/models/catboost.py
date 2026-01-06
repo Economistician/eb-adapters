@@ -24,7 +24,7 @@ from .base import BaseAdapter
 # Optional CatBoost dependency guard -----------------------------------------
 if TYPE_CHECKING:
     # Resolution for reportMissingImports: ignore missing optional library
-    from catboost import CatBoostRegressor  # type: ignore
+    from eb_adapters.models.catboost import CatBoostRegressor  # type: ignore
 
     # Resolution for reportUndefinedVariable: define flag for type checker
     HAS_CATBOOST = True

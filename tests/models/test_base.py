@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from eb_adapters.base import BaseAdapter, _clone_model
+from eb_adapters.models.base import BaseAdapter, _clone_model
 
 
 def test_base_adapter_fit_raises_not_implemented():

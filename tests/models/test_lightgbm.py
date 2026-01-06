@@ -6,7 +6,7 @@ import pytest
 # Skip this entire module if lightgbm is not installed
 pytest.importorskip("lightgbm", reason="lightgbm not installed")
 
-from eb_adapters.lightgbm import LightGBMRegressorAdapter
+from eb_adapters.models.lightgbm import LightGBMRegressorAdapter
 
 
 def test_lightgbm_adapter_fit_and_predict_basic():

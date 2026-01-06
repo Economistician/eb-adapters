@@ -4,7 +4,7 @@ import pytest
 # Skip this entire module if catboost is not installed
 pytest.importorskip("catboost", reason="catboost not installed")
 
-from eb_adapters.catboost import CatBoostAdapter
+from eb_adapters.models.catboost import CatBoostAdapter
 
 
 def test_catboost_adapter_fit_and_predict_basic():

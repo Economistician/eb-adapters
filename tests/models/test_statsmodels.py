@@ -4,7 +4,7 @@ import pytest
 # Skip the whole module if statsmodels is not installed
 pytest.importorskip("statsmodels", reason="statsmodels not installed")
 
-from eb_adapters.statsmodels import ArimaAdapter, SarimaxAdapter
+from eb_adapters.models.statsmodels import ArimaAdapter, SarimaxAdapter
 
 
 def _make_series(n: int = 30) -> np.ndarray:

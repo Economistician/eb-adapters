@@ -16,11 +16,11 @@ treat native scikit-learn estimators and wrapped external models uniformly.
 
 from __future__ import annotations
 
-from .base import BaseAdapter, _clone_model, clone_model
-from .catboost import CatBoostAdapter
-from .lightgbm import LightGBMRegressorAdapter
-from .prophet import ProphetAdapter
-from .statsmodels import ArimaAdapter, SarimaxAdapter
+from .models.base import BaseAdapter, _clone_model, clone_model
+from .models.catboost import CatBoostAdapter
+from .models.lightgbm import LightGBMRegressorAdapter
+from .models.prophet import ProphetAdapter
+from .models.statsmodels import ArimaAdapter, SarimaxAdapter
 
 __all__ = [
     "ArimaAdapter",
