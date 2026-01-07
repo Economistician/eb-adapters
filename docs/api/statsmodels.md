@@ -1,11 +1,7 @@
-# Statsmodels Adapters API
+# statsmodels adapter
 
-This section documents adapters for integrating classic
-`statsmodels` time-series models into the **eb-adapters** package.
+This section documents the statsmodels adapter provided by `eb-adapters`.
 
-All content below is generated automatically from NumPy-style docstrings
-in the source code.
-
-## Statsmodels Adapter Module
+The statsmodels adapter enables Electric Barometer components to integrate with statsmodels forecasting and statistical models by adapting fitted model outputs and evaluation interfaces to EB-compatible abstractions.
 
 ::: eb_adapters.statsmodels

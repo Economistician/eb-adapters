@@ -1,11 +1,7 @@
-# CatBoost Adapter API
+# CatBoost adapter
 
-This section documents the CatBoost adapter used to integrate
-`catboost.CatBoostRegressor` into the **eb-adapters** package.
+This section documents the CatBoost adapter provided by `eb-adapters`.
 
-All content below is generated automatically from NumPy-style docstrings
-in the source code.
-
-## CatBoost Adapter Module
+The CatBoost adapter enables Electric Barometer components to interoperate with CatBoost models by normalizing prediction outputs and evaluation interfaces.
 
 ::: eb_adapters.catboost

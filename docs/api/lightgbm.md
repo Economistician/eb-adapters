@@ -1,11 +1,7 @@
-# LightGBM Adapter API
+# LightGBM adapter
 
-This section documents the LightGBM adapter used to integrate
-`lightgbm.LGBMRegressor` into the **eb-adapters** package.
+This section documents the LightGBM adapter provided by `eb-adapters`.
 
-All content below is generated automatically from NumPy-style docstrings
-in the source code.
-
-## LightGBM Adapter Module
+The LightGBM adapter enables Electric Barometer components to integrate with LightGBM models by adapting prediction, training, and evaluation interfaces to EB-compatible abstractions.
 
 ::: eb_adapters.lightgbm

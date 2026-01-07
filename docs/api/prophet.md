@@ -1,11 +1,7 @@
-# Prophet Adapter API
+# Prophet adapter
 
-This section documents the Prophet adapter used to integrate
-`prophet.Prophet` into the **eb-adapters** package.
+This section documents the Prophet adapter provided by `eb-adapters`.
 
-All content below is generated automatically from NumPy-style docstrings
-in the source code.
-
-## Prophet Adapter Module
+The Prophet adapter enables Electric Barometer components to integrate with Prophet models by adapting forecast outputs and evaluation interfaces to EB-compatible abstractions.
 
 ::: eb_adapters.prophet
