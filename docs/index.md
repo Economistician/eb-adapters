@@ -17,10 +17,10 @@ It intentionally avoids implementing metrics, models, or workflows.
 
 ## Contents
 
-- **Base adapter interfaces**  
+- **Base adapter interfaces**
   Shared abstractions and contracts used by all adapters
 
-- **Framework adapters**  
+- **Framework adapters**
   Implementations for specific libraries (e.g. statsmodels, LightGBM, CatBoost, Prophet)
 
 ## API reference

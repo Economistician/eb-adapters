@@ -21,6 +21,7 @@ from .models.catboost import CatBoostAdapter
 from .models.lightgbm import LightGBMRegressorAdapter
 from .models.prophet import ProphetAdapter
 from .models.statsmodels import ArimaAdapter, SarimaxAdapter
+from .models.xgboost import XGBoostRegressorAdapter
 
 __all__ = [
     "ArimaAdapter",
@@ -29,6 +30,7 @@ __all__ = [
     "LightGBMRegressorAdapter",
     "ProphetAdapter",
     "SarimaxAdapter",
+    "XGBoostRegressorAdapter",
     "_clone_model",
     "clone_model",
 ]
