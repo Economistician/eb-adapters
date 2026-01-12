@@ -15,7 +15,7 @@ The adapter is designed for use within the ElectricBarometer ecosystem and aims 
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Iterable, Sequence, cast
 
 import numpy as np
 
@@ -24,9 +24,11 @@ from .base import BaseAdapter
 # Optional CatBoost dependency guard -----------------------------------------
 if TYPE_CHECKING:
     # Resolution for reportMissingImports: ignore missing optional library
-    from eb_adapters.models.catboost import CatBoostRegressor  # type: ignore
+    from catboost import CatBoostRegressor  # type: ignore
 
-    # Resolution for reportUndefinedVariable: define flag for type checker
+    # Optional: pandas is not required at import-time; only used if provided at runtime
+    import pandas as pd  # type: ignore
+
     HAS_CATBOOST = True
 else:
     try:  # pragma: no cover - optional dependency
@@ -36,6 +38,86 @@ else:
     except Exception:  # pragma: no cover - optional dependency
         CatBoostRegressor = None
         HAS_CATBOOST = False
+
+
+def _is_pandas_df(obj: Any) -> bool:
+    """Return True if obj is a pandas DataFrame (without importing pandas globally)."""
+    return hasattr(obj, "__dataframe__") or obj.__class__.__name__ == "DataFrame"
+
+
+def _infer_cat_features_from_df(X: Any) -> list[int]:
+    """
+    Infer categorical feature indices from a pandas DataFrame.
+
+    We treat object/category dtype columns as categorical by default.
+    (Booleans are *not* inferred as categorical here; callers may pass them explicitly.)
+    """
+    # Import pandas lazily to keep module import optional-dependency safe.
+    import pandas as pd  # type: ignore
+
+    if not isinstance(X, pd.DataFrame):
+        return []
+
+    cat_cols: list[str] = []
+    for c in X.columns:
+        dt = X[c].dtype
+        if dt == "object" or str(dt) == "category":
+            cat_cols.append(str(c))
+
+    if not cat_cols:
+        return []
+
+    col_index = {str(c): i for i, c in enumerate(X.columns)}
+    return [col_index[c] for c in cat_cols if c in col_index]
+
+
+def _normalize_cat_features(
+    X: Any,
+    cat_features: Sequence[int] | Sequence[str] | None,
+) -> list[int] | None:
+    """
+    Normalize `cat_features` into the form expected by CatBoost: a list of indices.
+
+    - If X is a DataFrame:
+        - cat_features may be column names or indices.
+        - if cat_features is None, infer from object/category dtype columns.
+    - If X is an ndarray:
+        - cat_features must be indices (or None).
+    """
+    if cat_features is None:
+        if _is_pandas_df(X):
+            inferred = _infer_cat_features_from_df(X)
+            return inferred or None
+        return None
+
+    # If provided, normalize based on X type
+    if _is_pandas_df(X):
+        import pandas as pd  # type: ignore
+
+        if isinstance(X, pd.DataFrame):
+            col_index = {str(c): i for i, c in enumerate(X.columns)}
+
+            # Names -> indices
+            if len(cat_features) > 0 and isinstance(cat_features[0], str):  # type: ignore[index]
+                names = cast(Sequence[str], cat_features)
+                unknown = [n for n in names if str(n) not in col_index]
+                if unknown:
+                    raise ValueError(
+                        f"Unknown cat_features column name(s): {unknown}. "
+                        "Pass valid DataFrame column names or integer indices."
+                    )
+                return [col_index[str(n)] for n in names]
+
+            # Indices as-is
+            return [int(i) for i in cast(Sequence[int], cat_features)]
+
+    # ndarray path: indices only
+    if len(cat_features) > 0 and isinstance(cat_features[0], str):  # type: ignore[index]
+        raise ValueError(
+            "cat_features as names is only supported when X is a pandas DataFrame. "
+            "For numpy arrays, pass cat_features as integer indices."
+        )
+    return [int(i) for i in cast(Sequence[int], cat_features)]
 
 
 class CatBoostAdapter(BaseAdapter):
@@ -53,7 +135,10 @@ class CatBoostAdapter(BaseAdapter):
 
     Notes
     -----
-    - `X` and `y` are treated as standard tabular regression inputs.
+    - Supports X as either numpy arrays or pandas DataFrames.
+    - If X is a pandas DataFrame, categorical features can be specified via:
+        - `fit(..., cat_features=[...])` as column names or indices, OR
+        - inferred automatically from object/category dtype columns when `cat_features=None`.
     - If provided, `sample_weight` is passed through to CatBoost training.
     - Training verbosity is disabled by default (`verbose=False`) unless the caller
       supplies `verbose` explicitly.
@@ -67,8 +152,8 @@ class CatBoostAdapter(BaseAdapter):
     ...     iterations=200,
     ...     loss_function="RMSE",
     ... )
-    >>> # X, y are numpy arrays (or array-like)
-    >>> # model.fit(X, y).predict(X)
+    >>> # X may be numpy arrays or a pandas DataFrame
+    >>> # model.fit(X, y, cat_features=["STATE", "SEASON"]).predict(X)
     """
 
     def __init__(self, **params: Any) -> None:
@@ -95,22 +180,29 @@ class CatBoostAdapter(BaseAdapter):
     # ------------------------------------------------------------------
     def fit(
         self,
-        X: np.ndarray,
+        X: Any,
         y: np.ndarray,
         sample_weight: np.ndarray | None = None,
+        cat_features: Sequence[int] | Sequence[str] | None = None,
     ) -> CatBoostAdapter:
         """
         Fit the underlying `catboost.CatBoostRegressor`.
 
         Parameters
         ----------
-        X : numpy.ndarray
-            Feature matrix of shape (n_samples, n_features).
+        X : Any
+            Feature matrix. May be a numpy.ndarray of shape (n_samples, n_features)
+            or a pandas.DataFrame.
         y : numpy.ndarray
             Target vector of shape (n_samples,).
         sample_weight : numpy.ndarray | None
             Optional per-sample weights of shape (n_samples,). If provided, this is
-            forwardly to CatBoost training.
+            forwarded to CatBoost training.
+        cat_features : Sequence[int] | Sequence[str] | None
+            Categorical feature specification.
+            - If X is a pandas.DataFrame: may be column names or integer indices.
+            - If X is a numpy.ndarray: must be integer indices.
+            - If None and X is a pandas.DataFrame: inferred from object/category dtypes.
 
         Returns
         -------
@@ -121,6 +213,8 @@ class CatBoostAdapter(BaseAdapter):
         ------
         RuntimeError
             If CatBoost is not available or the internal model is not initialized.
+        ValueError
+            If cat_features are invalid for the given X type.
         """
         if not HAS_CATBOOST or self.model is None:
             raise RuntimeError(
@@ -128,30 +222,46 @@ class CatBoostAdapter(BaseAdapter):
                 "the internal model was not initialized correctly."
             )
 
-        X_arr = np.asarray(X)
-        y_arr = np.asarray(y, dtype=float)
+        y_arr = np.asarray(y, dtype=float).ravel()
+        if sample_weight is not None:
+            sw_arr = np.asarray(sample_weight, dtype=float).ravel()
+        else:
+            sw_arr = None
+
+        cat_idx = _normalize_cat_features(X, cat_features)
 
         # Resolution for reportOptionalCall: use a local typed variable
         m = cast(Any, self.model)
-        if sample_weight is not None:
-            sw_arr = np.asarray(sample_weight, dtype=float)
-            m.fit(X_arr, y_arr, sample_weight=sw_arr)
+
+        # If pandas DataFrame provided, pass through directly so CatBoost can use it.
+        if _is_pandas_df(X):
+            if sw_arr is not None:
+                m.fit(X, y_arr, sample_weight=sw_arr, cat_features=cat_idx)
+            else:
+                m.fit(X, y_arr, cat_features=cat_idx)
+            return self
+
+        # numpy / array-like fallback
+        X_arr = np.asarray(X)
+        if sw_arr is not None:
+            m.fit(X_arr, y_arr, sample_weight=sw_arr, cat_features=cat_idx)
         else:
-            m.fit(X_arr, y_arr)
+            m.fit(X_arr, y_arr, cat_features=cat_idx)
 
         return self
 
     # ------------------------------------------------------------------
     # Predict
     # ------------------------------------------------------------------
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: Any) -> np.ndarray:
         """
         Predict using the fitted CatBoost model.
 
         Parameters
         ----------
-        X : numpy.ndarray
-            Feature matrix of shape (n_samples, n_features).
+        X : Any
+            Feature matrix. May be a numpy.ndarray of shape (n_samples, n_features)
+            or a pandas.DataFrame.
 
         Returns
         -------
@@ -166,10 +276,9 @@ class CatBoostAdapter(BaseAdapter):
         if self.model is None:
             raise RuntimeError("CatBoostAdapter has not been fit yet. Call `fit(...)` first.")
 
-        X_arr = np.asarray(X)
         # Resolution for reportOptionalCall
         m = cast(Any, self.model)
-        preds = m.predict(X_arr)
+        preds = m.predict(X)
         return np.asarray(preds, dtype=float).ravel()
 
     # ------------------------------------------------------------------
