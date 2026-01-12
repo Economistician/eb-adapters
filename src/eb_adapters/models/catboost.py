@@ -15,7 +15,8 @@ The adapter is designed for use within the ElectricBarometer ecosystem and aims 
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Sequence, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
@@ -27,7 +28,6 @@ if TYPE_CHECKING:
     from catboost import CatBoostRegressor  # type: ignore
 
     # Optional: pandas is not required at import-time; only used if provided at runtime
-    import pandas as pd  # type: ignore
 
     HAS_CATBOOST = True
 else:
