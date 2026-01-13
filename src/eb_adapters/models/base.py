@@ -9,6 +9,13 @@ Adapters are intended to wrap non-scikit-learn forecasting or regression
 libraries (for example, statsmodels, Prophet, or custom models) and expose
 a scikit-learn-like interface so they can be used interchangeably inside
 ElectricBarometer evaluation and selection workflows.
+
+Important
+---------
+Model adapters in eb-adapters are intentionally "array-level" by default:
+they expect `X` and `y` as numpy arrays. Electric Barometer contracts
+(e.g., PanelDemandV1) must be converted to arrays by the caller (or by a
+higher-level orchestration layer) before calling `fit()` / `predict()`.
 """
 
 from __future__ import annotations
@@ -75,6 +82,89 @@ def _clone_model(model: Any) -> Any:
 clone_model = _clone_model
 
 
+def _type_label(obj: Any) -> str:
+    """Return a compact type label suitable for error messages."""
+    try:
+        return f"{obj.__class__.__module__}.{obj.__class__.__name__}"
+    except Exception:  # pragma: no cover
+        return str(type(obj))
+
+
+def _looks_like_eb_contract(obj: Any) -> bool:
+    """
+    Best-effort detection for EB contract-like objects.
+
+    We intentionally avoid importing eb-contracts here to keep base.py
+    lightweight and free of hard dependencies.
+
+    Heuristic:
+    - has attribute `frame` (common for panel contracts), and
+    - class name contains "Panel" or ends with "V1" (contract naming convention)
+    """
+    try:
+        name = obj.__class__.__name__
+    except Exception:  # pragma: no cover
+        return False
+    if not hasattr(obj, "frame"):
+        return False
+    return ("Panel" in name) or name.endswith("V1")
+
+
+def validate_fit_inputs(
+    X: Any,
+    y: Any,
+    sample_weight: Any | None = None,
+    *,
+    adapter_name: str | None = None,
+) -> None:
+    """
+    Validate that adapter `fit()` inputs match the EB model-adapter contract.
+
+    This is a small, reusable guard intended to be called by subclasses
+    at the top of their `fit()` implementations.
+
+    Parameters
+    ----------
+    X, y
+        Expected to be numpy arrays. `y` should be one-dimensional.
+    sample_weight
+        If provided, expected to be a numpy array.
+    adapter_name
+        Optional name to use in error messages (defaults to "Adapter").
+
+    Raises
+    ------
+    TypeError
+        If inputs are not numpy arrays, or if an EB contract-like object was passed.
+    """
+    name = adapter_name or "Adapter"
+
+    # Helpful error when a user passes an EB contract by mistake.
+    if (
+        _looks_like_eb_contract(X)
+        or _looks_like_eb_contract(y)
+        or _looks_like_eb_contract(sample_weight)
+    ):
+        raise TypeError(
+            f"{name}.fit expects numpy arrays (X: np.ndarray, y: np.ndarray). "
+            "You passed an Electric Barometer contract-like object. "
+            "Extract arrays from the contract (e.g., from `panel.frame`) before calling fit(). "
+            f"Got X={_type_label(X)}, y={_type_label(y)}."
+        )
+
+    if not isinstance(X, np.ndarray) or not isinstance(y, np.ndarray):
+        raise TypeError(
+            f"{name}.fit expects numpy arrays (X: np.ndarray, y: np.ndarray). "
+            f"Got X={_type_label(X)}, y={_type_label(y)}."
+        )
+
+    if sample_weight is not None and not isinstance(sample_weight, np.ndarray):
+        raise TypeError(
+            f"{name}.fit expects sample_weight as a numpy array when provided. "
+            f"Got sample_weight={_type_label(sample_weight)}."
+        )
+
+
 class BaseAdapter:
     """
     Minimal base class defining the adapter contract for ElectricBarometer.
@@ -88,9 +178,11 @@ class BaseAdapter:
     - `fit(X, y, sample_weight=None)` returning `self`
     - `predict(X)` returning a one-dimensional numpy array
 
-    The ElectricBarometer engine does not distinguish between native
-    scikit-learn estimators and adapters; it simply calls `fit` and `predict`.
-    This base class serves as a clear, documented contract for adapter authors.
+    Notes
+    -----
+    This adapter contract is array-level: `X` and `y` are numpy arrays.
+    Electric Barometer contracts (e.g., PanelDemandV1) should be converted to
+    arrays before calling `fit()` / `predict()`.
     """
 
     def fit(

@@ -96,3 +96,52 @@ def test_arima_adapter_get_and_set_params_roundtrip():
 
     assert params2["order"] == (1, 0, 0)
     assert params2["trend"] is None
+
+
+def test_sarimax_adapter_fit_rejects_contract_like_inputs():
+    """
+    SarimaxAdapter should provide an actionable error when a contract-like object
+    is passed instead of numpy arrays.
+    """
+
+    class FakePanelDemandV1:
+        def __init__(self) -> None:
+            self.frame = "not-a-real-frame"
+
+    y = _make_series(20)
+
+    adapter = SarimaxAdapter(order=(1, 0, 0), seasonal_order=(0, 0, 0, 0))
+
+    with pytest.raises(TypeError, match=r"expects numpy arrays|contract-like|Electric Barometer"):
+        adapter.fit(FakePanelDemandV1(), y)  # type: ignore[arg-type]
+
+
+def test_arima_adapter_fit_rejects_contract_like_inputs():
+    """
+    ArimaAdapter should provide an actionable error when a contract-like object
+    is passed instead of numpy arrays.
+    """
+
+    class FakePanelDemandV1:
+        def __init__(self) -> None:
+            self.frame = "not-a-real-frame"
+
+    y = _make_series(20)
+
+    adapter = ArimaAdapter(order=(1, 0, 0), trend=None)
+
+    with pytest.raises(TypeError, match=r"expects numpy arrays|contract-like|Electric Barometer"):
+        adapter.fit(FakePanelDemandV1(), y)  # type: ignore[arg-type]
+
+
+def test_arima_adapter_fit_rejects_non_ndarray_inputs():
+    """
+    ArimaAdapter should reject non-ndarray inputs with a clear TypeError.
+    """
+    y = _make_series(20).tolist()
+    X_train = np.zeros((20, 1))
+
+    adapter = ArimaAdapter(order=(1, 0, 0), trend=None)
+
+    with pytest.raises(TypeError, match=r"expects numpy arrays"):
+        adapter.fit(X_train, y)  # type: ignore[arg-type]

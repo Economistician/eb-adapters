@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from eb_adapters.models.base import BaseAdapter, _clone_model
+from eb_adapters.models.base import BaseAdapter, _clone_model, validate_fit_inputs
 
 
 def test_base_adapter_fit_raises_not_implemented():
@@ -79,3 +79,53 @@ def test_clone_model_without_get_params_uses_default_ctor():
     assert isinstance(cloned, NoParams)
     assert cloned is not obj
     assert cloned.flag is True
+
+
+def test_validate_fit_inputs_accepts_numpy_arrays():
+    """validate_fit_inputs should accept well-typed numpy arrays."""
+    X = np.zeros((10, 2), dtype=float)
+    y = np.zeros((10,), dtype=float)
+    sw = np.ones((10,), dtype=float)
+    validate_fit_inputs(X, y, sw, adapter_name="ToyAdapter")
+
+
+def test_validate_fit_inputs_rejects_non_ndarray_X():
+    """validate_fit_inputs should raise TypeError when X is not an ndarray."""
+    X = [[1.0, 2.0]]  # list, not ndarray
+    y = np.zeros((1,), dtype=float)
+    with pytest.raises(TypeError, match=r"expects numpy arrays"):
+        validate_fit_inputs(X, y, adapter_name="ToyAdapter")
+
+
+def test_validate_fit_inputs_rejects_non_ndarray_y():
+    """validate_fit_inputs should raise TypeError when y is not an ndarray."""
+    X = np.zeros((1, 2), dtype=float)
+    y = [1.0]  # list, not ndarray
+    with pytest.raises(TypeError, match=r"expects numpy arrays"):
+        validate_fit_inputs(X, y, adapter_name="ToyAdapter")
+
+
+def test_validate_fit_inputs_rejects_non_ndarray_sample_weight():
+    """validate_fit_inputs should raise TypeError when sample_weight is not an ndarray."""
+
+    X = np.zeros((3, 1), dtype=float)
+    y = np.zeros((3,), dtype=float)
+    sw = [1.0, 1.0, 1.0]  # list, not ndarray
+
+    with pytest.raises(TypeError, match=r"sample_weight"):
+        validate_fit_inputs(X, y, sw, adapter_name="ToyAdapter")
+
+
+def test_validate_fit_inputs_rejects_contract_like_input():
+    """validate_fit_inputs should provide actionable guidance for contract-like objects."""
+
+    class FakePanelDemandV1:
+        # Heuristic in base.py: has `.frame` and class name looks contract-ish.
+        def __init__(self) -> None:
+            self.frame = "not-a-real-frame"
+
+    contract_like = FakePanelDemandV1()
+    y = np.zeros((1,), dtype=float)
+
+    with pytest.raises(TypeError, match=r"contract-like|Electric Barometer"):
+        validate_fit_inputs(contract_like, y, adapter_name="ToyAdapter")

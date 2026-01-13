@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
-from .base import BaseAdapter
+from .base import BaseAdapter, validate_fit_inputs
 
 # Optional statsmodels support ------------------------------------------------
 if TYPE_CHECKING:
@@ -90,6 +90,8 @@ class SarimaxAdapter(BaseAdapter):
         """
         Fit a univariate SARIMAX model on `y`.
         """
+        validate_fit_inputs(X, y, sample_weight, adapter_name=self.__class__.__name__)
+
         _ = X  # intentionally unused; kept for API compatibility
         _ = sample_weight  # intentionally unused; kept for API compatibility
 
@@ -181,6 +183,8 @@ class ArimaAdapter(BaseAdapter):
         """
         Fit a univariate ARIMA model on `y`.
         """
+        validate_fit_inputs(X, y, sample_weight, adapter_name=self.__class__.__name__)
+
         _ = X
         _ = sample_weight
 
