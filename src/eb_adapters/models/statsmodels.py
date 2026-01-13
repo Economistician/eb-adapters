@@ -38,6 +38,30 @@ else:
         HAS_STATSMODELS = False
 
 
+def _extract_mle_retvals(result: Any) -> dict[str, Any] | None:
+    """
+    Extract a lightweight fit-diagnostics dictionary from a statsmodels result.
+
+    Many statsmodels time-series estimators expose an `mle_retvals` dict-like
+    structure that includes keys such as `converged`, `iterations`, and `warnflag`.
+
+    This helper returns a plain `dict` when available, otherwise None.
+    """
+    try:
+        retvals = result.mle_retvals  # type: ignore[attr-defined]
+    except Exception:
+        return None
+
+    if retvals is None:
+        return None
+
+    # Ensure a plain dict for safe serialization and predictable access.
+    try:
+        return dict(retvals)
+    except Exception:
+        return {"mle_retvals": retvals}
+
+
 class SarimaxAdapter(BaseAdapter):
     """
     Adapter for `statsmodels` SARIMAX.
@@ -75,6 +99,7 @@ class SarimaxAdapter(BaseAdapter):
         self.enforce_invertibility = enforce_invertibility
 
         self._result: Any | None = None
+        self.fit_diagnostics: dict[str, Any] | None = None
 
         # Failure is intentionally delayed until fit(); this flag supports
         # feature detection and optional-dependency behavior.
@@ -116,6 +141,7 @@ class SarimaxAdapter(BaseAdapter):
 
         # Keep fitting lightweight for typical adapter usage and tests.
         self._result = model.fit(disp=False, maxiter=50)
+        self.fit_diagnostics = _extract_mle_retvals(self._result)
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -133,6 +159,14 @@ class SarimaxAdapter(BaseAdapter):
         res = cast(Any, self._result)
         forecast = res.forecast(steps=n_steps)
         return np.asarray(forecast, dtype=float)
+
+    def get_fit_diagnostics(self) -> dict[str, Any] | None:
+        """
+        Return a defensive copy of the fit diagnostics dict, if available.
+        """
+        if self.fit_diagnostics is None:
+            return None
+        return dict(self.fit_diagnostics)
 
     def get_params(self, deep: bool = True) -> dict[str, Any]:
         _ = deep
@@ -170,6 +204,7 @@ class ArimaAdapter(BaseAdapter):
         self.order = order
         self.trend = trend
         self._result: Any | None = None
+        self.fit_diagnostics: dict[str, Any] | None = None
 
         if not HAS_STATSMODELS:
             pass
@@ -205,6 +240,7 @@ class ArimaAdapter(BaseAdapter):
         )
 
         self._result = model.fit()
+        self.fit_diagnostics = _extract_mle_retvals(self._result)
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -222,6 +258,14 @@ class ArimaAdapter(BaseAdapter):
         res = cast(Any, self._result)
         forecast = res.forecast(steps=n_steps)
         return np.asarray(forecast, dtype=float)
+
+    def get_fit_diagnostics(self) -> dict[str, Any] | None:
+        """
+        Return a defensive copy of the fit diagnostics dict, if available.
+        """
+        if self.fit_diagnostics is None:
+            return None
+        return dict(self.fit_diagnostics)
 
     def get_params(self, deep: bool = True) -> dict[str, Any]:
         _ = deep

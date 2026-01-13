@@ -33,6 +33,25 @@ def test_sarimax_adapter_fit_and_predict_basic():
     assert np.all(np.isfinite(y_pred))
 
 
+def test_sarimax_adapter_records_fit_diagnostics():
+    """
+    After fit(), SarimaxAdapter should expose statsmodels fit diagnostics.
+    """
+    y = _make_series(40)
+    X_train = np.zeros((len(y), 1))
+
+    adapter = SarimaxAdapter(order=(1, 0, 0), seasonal_order=(0, 0, 0, 0))
+    adapter.fit(X_train, y)
+
+    assert adapter.fit_diagnostics is not None
+    assert "converged" in adapter.fit_diagnostics
+    assert isinstance(adapter.fit_diagnostics["converged"], bool)
+
+    diag = adapter.get_fit_diagnostics()
+    assert diag is not None
+    assert diag["converged"] == adapter.fit_diagnostics["converged"]
+
+
 def test_sarimax_adapter_get_and_set_params_roundtrip():
     """
     get_params/set_params should provide a minimal sklearn-like API so
@@ -78,6 +97,25 @@ def test_arima_adapter_fit_and_predict_basic():
     assert isinstance(y_pred, np.ndarray)
     assert y_pred.shape == (len(X_val),)
     assert np.all(np.isfinite(y_pred))
+
+
+def test_arima_adapter_records_fit_diagnostics():
+    """
+    After fit(), ArimaAdapter should expose statsmodels fit diagnostics.
+    """
+    y = _make_series(30)
+    X_train = np.zeros((len(y), 1))
+
+    adapter = ArimaAdapter(order=(1, 0, 0), trend=None)
+    adapter.fit(X_train, y)
+
+    assert adapter.fit_diagnostics is not None
+    assert "converged" in adapter.fit_diagnostics
+    assert isinstance(adapter.fit_diagnostics["converged"], bool)
+
+    diag = adapter.get_fit_diagnostics()
+    assert diag is not None
+    assert diag["converged"] == adapter.fit_diagnostics["converged"]
 
 
 def test_arima_adapter_get_and_set_params_roundtrip():
