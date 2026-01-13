@@ -107,12 +107,30 @@ def test_validate_fit_inputs_rejects_non_ndarray_y():
 
 def test_validate_fit_inputs_rejects_non_ndarray_sample_weight():
     """validate_fit_inputs should raise TypeError when sample_weight is not an ndarray."""
-
     X = np.zeros((3, 1), dtype=float)
     y = np.zeros((3,), dtype=float)
     sw = [1.0, 1.0, 1.0]  # list, not ndarray
 
     with pytest.raises(TypeError, match=r"sample_weight"):
+        validate_fit_inputs(X, y, sw, adapter_name="ToyAdapter")
+
+
+def test_validate_fit_inputs_rejects_non_1d_y():
+    """validate_fit_inputs should raise ValueError when y is not 1D."""
+    X = np.zeros((3, 1), dtype=float)
+    y = np.zeros((3, 1), dtype=float)  # 2D, invalid
+
+    with pytest.raises(ValueError, match=r"y as a 1D"):
+        validate_fit_inputs(X, y, adapter_name="ToyAdapter")
+
+
+def test_validate_fit_inputs_rejects_sample_weight_length_mismatch():
+    """validate_fit_inputs should raise ValueError when sample_weight length != y length."""
+    X = np.zeros((3, 1), dtype=float)
+    y = np.zeros((3,), dtype=float)
+    sw = np.ones((2,), dtype=float)
+
+    with pytest.raises(ValueError, match=r"same length as y"):
         validate_fit_inputs(X, y, sw, adapter_name="ToyAdapter")
 
 

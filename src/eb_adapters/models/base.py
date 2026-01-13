@@ -136,6 +136,8 @@ def validate_fit_inputs(
     ------
     TypeError
         If inputs are not numpy arrays, or if an EB contract-like object was passed.
+    ValueError
+        If array shapes are inconsistent or y is not one-dimensional.
     """
     name = adapter_name or "Adapter"
 
@@ -158,11 +160,29 @@ def validate_fit_inputs(
             f"Got X={_type_label(X)}, y={_type_label(y)}."
         )
 
+    if y.ndim != 1:
+        raise ValueError(
+            f"{name}.fit expects y as a 1D numpy array. "
+            f"Got y with shape={getattr(y, 'shape', None)}."
+        )
+
     if sample_weight is not None and not isinstance(sample_weight, np.ndarray):
         raise TypeError(
             f"{name}.fit expects sample_weight as a numpy array when provided. "
             f"Got sample_weight={_type_label(sample_weight)}."
         )
+
+    if sample_weight is not None:
+        if sample_weight.ndim != 1:
+            raise ValueError(
+                f"{name}.fit expects sample_weight as a 1D numpy array. "
+                f"Got sample_weight with shape={getattr(sample_weight, 'shape', None)}."
+            )
+        if len(sample_weight) != len(y):
+            raise ValueError(
+                f"{name}.fit expects sample_weight to have the same length as y. "
+                f"Got len(sample_weight)={len(sample_weight)}, len(y)={len(y)}."
+            )
 
 
 class BaseAdapter:
