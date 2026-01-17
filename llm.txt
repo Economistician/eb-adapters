@@ -12,6 +12,10 @@ model logic or policy decisions.
 This repository defines HOW models and tools connect to EB,
 not HOW forecasts are evaluated, governed, or adjusted.
 
+STYLE
+- Inherits ecosystem-wide style and linting rules from
+  eb-integration/tooling/llm.style.txt via shared tooling.
+
 ---
 
 PRIMARY RESPONSIBILITIES
