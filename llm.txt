@@ -1,0 +1,128 @@
+REPOSITORY: eb-adapters
+
+ROLE
+This repository provides adapter and integration utilities that bridge external
+models, libraries, and data tooling into the Electric Barometer (EB) ecosystem.
+
+Its purpose is to translate inputs and outputs from third-party or internal
+forecasting tools into EB-compatible contract artifacts, and to expose
+standardized hooks for training, scoring, and inference without embedding
+model logic or policy decisions.
+
+This repository defines HOW models and tools connect to EB,
+not HOW forecasts are evaluated, governed, or adjusted.
+
+---
+
+PRIMARY RESPONSIBILITIES
+
+- Model adapters:
+  - wrap external forecasting models (e.g., statsmodels, sklearn, xgboost,
+    lightgbm, custom models) behind a consistent EB-style interface
+  - standardize fit / predict / score hooks without altering model semantics
+
+- Data adapters:
+  - transform raw or model-specific inputs/outputs into EB contract-compatible
+    artifacts (e.g., PanelPointForecastV1, PanelQuantileForecastV1)
+  - ensure correct column naming, typing, and grain alignment
+
+- Integration utilities:
+  - lightweight helpers to connect EB workflows to common Python ML ecosystems
+  - isolate third-party dependency concerns from the rest of the EB stack
+
+- Compatibility layer:
+  - allow EB to support multiple modeling backends without coupling core logic
+    to any specific library or framework
+
+---
+
+NON-RESPONSIBILITIES (STRICT)
+
+This repository MUST NOT:
+
+- Define or train forecasting models as first-class EB logic
+  (model internals belong to the external libraries themselves)
+
+- Perform model selection, ranking, or comparison
+  (belongs in electric-barometer / orchestration layers)
+
+- Compute evaluation metrics or diagnostics
+  (belongs in eb-metrics / eb-evaluation)
+
+- Perform optimization or parameter tuning
+  (belongs in eb-optimization)
+
+- Encode governance rules, thresholds, or adjustment logic
+  (belongs in governance layers; see eb-integration/llm.system.txt)
+
+- Apply RAL or mutate forecasts post-evaluation
+
+- Define EB schemas or validation logic
+  (belongs in eb-contracts)
+
+---
+
+CORE INVARIANTS
+
+- Adapters are thin and transparent.
+  They must not change the mathematical meaning of model outputs.
+
+- No hidden policy.
+  Adapters must not embed thresholds, heuristics, or business rules that
+  influence downstream decisions.
+
+- Contract fidelity.
+  Outputs produced by adapters must be compatible with EB contracts and
+  validated via eb-contracts when required.
+
+- Dependency isolation.
+  Third-party library dependencies must be contained within adapters and must
+  not leak into core EB packages.
+
+- Deterministic behavior.
+  Given the same model, inputs, and parameters, adapter outputs must be
+  reproducible.
+
+---
+
+SYSTEM RELATIONSHIP
+
+- This repository defers to `eb-integration/llm.system.txt` for:
+  - canonical pipeline ordering
+  - the rule that governance is the single binding decision layer
+  - the rule that adjustment is optional and bounded
+
+- This repository is consumed by:
+  - electric-barometer (workflow orchestration)
+  - downstream pipelines that require standardized model interfaces
+
+- This repository may consume:
+  - eb-contracts for artifact validation
+  - external ML libraries for model execution
+
+---
+
+ALLOWED CHANGES
+
+- Adding new model adapters or backend integrations
+- Improving adapter robustness, validation, and error messaging
+- Extending support for new forecast artifact types (point, quantile, etc.)
+- Updating integrations to support new library versions
+
+---
+
+DISALLOWED CHANGES
+
+- Embedding evaluation, optimization, or governance logic
+- Introducing implicit model selection or ranking behavior
+- Adding cross-repo responsibilities outside adaptation
+- Making adapters “smart” in ways that affect decisions
+
+---
+
+INTERPRETATION RULE
+
+If the change is about connecting models or tools to EB contracts and workflows,
+it belongs here.
+If the change is about evaluating forecasts, choosing models, governing behavior,
+or executing adjustments, it does not belong here.
