@@ -13,7 +13,7 @@ Exports here are provided for convenience so callers can import adapters via:
 
 from __future__ import annotations
 
-from .base import BaseAdapter, _clone_model, clone_model
+from .base import BaseAdapter, clone_model
 from .catboost import CatBoostAdapter
 from .lightgbm import LightGBMRegressorAdapter
 from .prophet import ProphetAdapter
@@ -28,6 +28,5 @@ __all__ = [
     "ProphetAdapter",
     "SarimaxAdapter",
     "XGBoostRegressorAdapter",
-    "_clone_model",
     "clone_model",
 ]
