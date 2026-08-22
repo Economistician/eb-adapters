@@ -54,39 +54,33 @@ The package supports Python 3.11 and later.
 The example below shows how a forecasting model is wrapped behind a standardized adapter interface so it can be trained and evaluated consistently alongside other models.
 
 ```python
-from eb_adapters.statsmodels import StatsModelsAdapter
-from statsmodels.tsa.arima.model import ARIMA
+import numpy as np
+from eb_adapters import ArimaAdapter, SarimaxAdapter
 
-# Define a native model
-model = ARIMA
+y_train = np.array([10.0, 12.0, 11.0, 13.0, 14.0, 15.0], dtype=float)
+X_train = np.arange(len(y_train), dtype=float).reshape(-1, 1)
+X_horizon = np.arange(7, dtype=float).reshape(-1, 1)
 
-# Wrap the model with an adapter
-adapter = StatsModelsAdapter(
-    model_class=model,
-    model_kwargs={"order": (1, 1, 1)}
-)
+arima = ArimaAdapter(order=(1, 1, 1))
+arima.fit(X_train, y_train)
+y_pred = arima.predict(X_horizon)
 
-# Fit and predict using a standardized interface
-adapter.fit(y_train)
-y_pred = adapter.predict(horizon=7)
+sarimax = SarimaxAdapter(order=(1, 0, 0), seasonal_order=(0, 0, 0, 0))
+sarimax.fit(X_train, y_train)
+y_pred = sarimax.predict(X_horizon)
 ```
 
-The same interface can be used with tree-based or machine-learning models via a different adapter:
+The same `fit(X, y)` / `predict(X)` contract is used with tree-based models:
 
 ```python
-from eb_adapters.xgboost import XGBoostAdapter
-from xgboost import XGBRegressor
+import numpy as np
+from eb_adapters import XGBoostRegressorAdapter
 
-# Define a native model
-model = XGBRegressor
+X_train = np.arange(20, dtype=float).reshape(-1, 1)
+y_train = (2.0 * X_train[:, 0] + 1.0)
+X_future = np.arange(20, 27, dtype=float).reshape(-1, 1)
 
-# Wrap the model with an adapter
-adapter = XGBoostAdapter(
-    model_class=model,
-    model_kwargs={"n_estimators": 200, "max_depth": 4}
-)
-
-# Fit and predict using the same contract
+adapter = XGBoostRegressorAdapter(n_estimators=50, max_depth=3)
 adapter.fit(X_train, y_train)
 y_pred = adapter.predict(X_future)
 ```
