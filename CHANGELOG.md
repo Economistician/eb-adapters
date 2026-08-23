@@ -7,16 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `__version__` on the package root.
+
 ### Changed
 
 - Removed type-checker narration comments; rephrased first-person docstrings.
 - Tightened README Overview; removed cloned Role section.
+- Dropped `_clone_model` from the public root `__all__`; use `clone_model`.
+- Changelog version header now matches `pyproject.toml` (`0.2.4`).
 
 ### Fixed
 
 - Declared the runtime `eb-contracts>=0.2,<0.3` dependency used by demand-panel adapters.
 
-## [0.2.x] - 2026-08-22
+## [0.2.4] - 2026-08-22
 
 ### Breaking Changes
 

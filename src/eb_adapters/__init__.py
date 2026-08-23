@@ -16,12 +16,25 @@ treat native scikit-learn estimators and wrapped external models uniformly.
 
 from __future__ import annotations
 
-from .models.base import BaseAdapter, _clone_model, clone_model
+from importlib.metadata import PackageNotFoundError, version
+
+from .models.base import BaseAdapter, clone_model
 from .models.catboost import CatBoostAdapter
 from .models.lightgbm import LightGBMRegressorAdapter
 from .models.prophet import ProphetAdapter
 from .models.statsmodels import ArimaAdapter, SarimaxAdapter
 from .models.xgboost import XGBoostRegressorAdapter
+
+
+def _resolve_version() -> str:
+    """Return the installed version of the eb-adapters distribution."""
+    try:
+        return version("eb-adapters")
+    except PackageNotFoundError:
+        return "0.0.0"
+
+
+__version__ = _resolve_version()
 
 __all__ = [
     "ArimaAdapter",
@@ -31,6 +44,6 @@ __all__ = [
     "ProphetAdapter",
     "SarimaxAdapter",
     "XGBoostRegressorAdapter",
-    "_clone_model",
+    "__version__",
     "clone_model",
 ]
