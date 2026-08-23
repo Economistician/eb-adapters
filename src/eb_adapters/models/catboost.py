@@ -24,7 +24,6 @@ from .base import BaseAdapter
 
 # Optional CatBoost dependency guard -----------------------------------------
 if TYPE_CHECKING:
-    # Resolution for reportMissingImports: ignore missing optional library
     from catboost import CatBoostRegressor  # type: ignore
 
     # Optional: pandas is not required at import-time; only used if provided at runtime
@@ -46,11 +45,10 @@ def _is_pandas_df(obj: Any) -> bool:
 
 
 def _infer_cat_features_from_df(X: Any) -> list[int]:
-    """
-    Infer categorical feature indices from a pandas DataFrame.
+    """Infer categorical feature indices from a pandas DataFrame.
 
-    We treat object/category dtype columns as categorical by default.
-    (Booleans are *not* inferred as categorical here; callers may pass them explicitly.)
+    Object/category dtype columns are treated as categorical by default.
+    Booleans are not inferred; callers may pass them explicitly.
     """
     # Import pandas lazily to keep module import optional-dependency safe.
     import pandas as pd  # type: ignore
@@ -171,7 +169,6 @@ class CatBoostAdapter(BaseAdapter):
             self.params["verbose"] = False
 
         # Instantiate the underlying CatBoost model
-        # Resolution for reportOptionalCall: Cast the constructor to Any to bypass None-check
         ctor = cast(Any, CatBoostRegressor)
         self.model: Any | None = ctor(**self.params)
 
@@ -230,7 +227,6 @@ class CatBoostAdapter(BaseAdapter):
 
         cat_idx = _normalize_cat_features(X, cat_features)
 
-        # Resolution for reportOptionalCall: use a local typed variable
         m = cast(Any, self.model)
 
         # If pandas DataFrame provided, pass through directly so CatBoost can use it.
@@ -276,7 +272,6 @@ class CatBoostAdapter(BaseAdapter):
         if self.model is None:
             raise RuntimeError("CatBoostAdapter has not been fit yet. Call `fit(...)` first.")
 
-        # Resolution for reportOptionalCall
         m = cast(Any, self.model)
         preds = m.predict(X)
         return np.asarray(preds, dtype=float).ravel()

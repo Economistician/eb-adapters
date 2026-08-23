@@ -23,10 +23,8 @@ from .base import BaseAdapter
 
 # Optional XGBoost dependency guard -------------------------------------------
 if TYPE_CHECKING:
-    # Resolution for reportMissingImports: ignore missing optional library
     from xgboost import XGBRegressor  # type: ignore
 
-    # Resolution for reportUndefinedVariable: define flag for type checker
     HAS_XGBOOST = True
 else:
     try:  # pragma: no cover - optional dependency
@@ -66,7 +64,6 @@ class XGBoostRegressorAdapter(BaseAdapter):
         self.xgb_params: dict[str, Any] = dict(xgb_params)
 
         # Underlying XGBoost model instance
-        # Resolution for reportOptionalCall: Cast the constructor to Any to bypass None-check
         ctor = cast(Any, XGBRegressor)
         self.model: Any | None = ctor(**self.xgb_params)
 

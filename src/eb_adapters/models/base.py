@@ -91,15 +91,10 @@ def _type_label(obj: Any) -> str:
 
 
 def _looks_like_eb_contract(obj: Any) -> bool:
-    """
-    Best-effort detection for EB contract-like objects.
+    """Best-effort detection for EB contract-like objects.
 
-    We intentionally avoid importing eb-contracts here to keep base.py
-    lightweight and free of hard dependencies.
-
-    Heuristic:
-    - has attribute `frame` (common for panel contracts), and
-    - class name contains "Panel" or ends with "V1" (contract naming convention)
+    Avoids a hard dependency on eb-contracts. Heuristic: object has ``frame``
+    and a class name containing ``Panel`` or ending with ``V1``.
     """
     try:
         name = obj.__class__.__name__

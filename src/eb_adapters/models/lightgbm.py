@@ -23,10 +23,8 @@ from .base import BaseAdapter
 
 # Optional LightGBM dependency guard ------------------------------------------
 if TYPE_CHECKING:
-    # Resolution for reportMissingImports: ignore missing optional library
     from lightgbm import LGBMRegressor  # type: ignore
 
-    # Resolution for reportUndefinedVariable: define flag for type checker
     HAS_LIGHTGBM = True
 else:
     try:  # pragma: no cover - optional dependency
@@ -79,7 +77,6 @@ class LightGBMRegressorAdapter(BaseAdapter):
         self.lgbm_params: dict[str, Any] = dict(lgbm_params)
 
         # Underlying LightGBM model instance
-        # Resolution for reportOptionalCall: Cast the constructor to Any to bypass None-check
         ctor = cast(Any, LGBMRegressor)
         self.model: Any | None = ctor(**self.lgbm_params)
 
@@ -124,7 +121,6 @@ class LightGBMRegressorAdapter(BaseAdapter):
         X_arr = np.asarray(X)
         y_arr = np.asarray(y, dtype=float)
 
-        # Resolution for reportOptionalCall: Use cast to ensure callability
         m = cast(Any, self.model)
         if sample_weight is not None:
             sw_arr = np.asarray(sample_weight, dtype=float)
@@ -162,7 +158,6 @@ class LightGBMRegressorAdapter(BaseAdapter):
             )
 
         X_arr = np.asarray(X)
-        # Resolution for reportOptionalCall: Use cast to ensure callability
         m = cast(Any, self.model)
         preds = m.predict(X_arr)
         return np.asarray(preds, dtype=float).ravel()

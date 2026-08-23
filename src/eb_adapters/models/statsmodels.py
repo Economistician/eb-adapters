@@ -23,10 +23,8 @@ from .base import BaseAdapter, validate_fit_inputs
 
 # Optional statsmodels support ------------------------------------------------
 if TYPE_CHECKING:
-    # Resolution for reportMissingImports: ignore missing optional library
     import statsmodels.api as _sm  # type: ignore
 
-    # Resolution for reportUndefinedVariable: define flag for type checker
     HAS_STATSMODELS = True
 else:
     try:  # pragma: no cover - import guard
@@ -128,7 +126,6 @@ class SarimaxAdapter(BaseAdapter):
 
         y_arr = np.asarray(y, dtype=float)
 
-        # Resolution for reportOptionalMemberAccess: cast the module to Any
         sm_mod = cast(Any, _sm)
         model = sm_mod.tsa.statespace.SARIMAX(
             y_arr,
@@ -155,7 +152,6 @@ class SarimaxAdapter(BaseAdapter):
         if n_steps <= 0:
             return np.array([], dtype=float)
 
-        # Resolution for reportAttributeAccessIssue: cast result to Any
         res = cast(Any, self._result)
         forecast = res.forecast(steps=n_steps)
         return np.asarray(forecast, dtype=float)
@@ -231,7 +227,6 @@ class ArimaAdapter(BaseAdapter):
 
         y_arr = np.asarray(y, dtype=float)
 
-        # Resolution for reportOptionalMemberAccess
         sm_mod = cast(Any, _sm)
         model = sm_mod.tsa.ARIMA(
             y_arr,
@@ -254,7 +249,6 @@ class ArimaAdapter(BaseAdapter):
         if n_steps <= 0:
             return np.array([], dtype=float)
 
-        # Resolution for reportAttributeAccessIssue
         res = cast(Any, self._result)
         forecast = res.forecast(steps=n_steps)
         return np.asarray(forecast, dtype=float)
