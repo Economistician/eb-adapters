@@ -35,7 +35,7 @@ By separating model integration concerns from evaluation and metric semantics, `
 pip install eb-adapters
 ```
 
-The package supports Python 3.10 and later.
+The package supports Python 3.11 and later.
 
 ---
 
@@ -96,4 +96,4 @@ y_pred = adapter.predict(X_future)
 ## License
 
 BSD 3-Clause License.
-© 2025 Kyle Corrie.
+© 2026 Kyle Corrie.
