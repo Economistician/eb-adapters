@@ -29,9 +29,9 @@ dependencies = [
   "numpy>=1.24",
   "pandas>=2.0",
 
-  # Electric Barometer compatibility band (0.2.x)
-  "eb-metrics>=0.2,<0.3",
-  "eb-contracts>=0.2,<0.3",
+  # Electric Barometer System Release 0.2.9 pins
+  "eb-metrics==0.2.8",
+  "eb-contracts==0.2.2",
 ]
 
 ######################################

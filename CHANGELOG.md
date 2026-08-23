@@ -7,10 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- `__version__` on the package root.
-- Re-exported `QSRIntervalPanelDemandSpecV1` and `to_panel_demand_v1` from the package root.
+## [0.2.4] - 2026-08-23
 
 ### Changed
 
@@ -19,12 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tightened README Overview; removed cloned Role section.
 - Dropped `_clone_model` from the public root `__all__`; use `clone_model`.
 - Changelog version header now matches `pyproject.toml` (`0.2.4`).
+- Pinned sibling Electric Barometer packages to exact System Release 0.2.9 versions.
 
 ### Fixed
 
-- Declared the runtime `eb-contracts>=0.2,<0.3` dependency used by demand-panel adapters.
-
-## [0.2.4] - 2026-08-22
+- Declared the runtime `eb-contracts` dependency used by demand-panel adapters.
 
 ### Breaking Changes
 
@@ -32,5 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `__version__` on the package root.
+- Re-exported `QSRIntervalPanelDemandSpecV1` and `to_panel_demand_v1` from the package root.
 - Exposed real adapter classes (`ArimaAdapter`, `SarimaxAdapter`, `XGBoostRegressorAdapter`) with `fit(X, y)` / `predict(X)` signatures.
 - Added `test` and `all` extras to `pyproject.toml`.
