@@ -26,8 +26,8 @@ classifiers = [
 # Core runtime dependencies
 ######################################
 dependencies = [
-  "numpy",
-  "pandas",
+  "numpy>=1.24",
+  "pandas>=2.0",
 
   # Electric Barometer compatibility band (0.2.x)
   "eb-metrics>=0.2,<0.3",

@@ -18,6 +18,10 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
+from .contracts.demand_panel.v1.qsr import (
+    QSRIntervalPanelDemandSpecV1,
+    to_panel_demand_v1,
+)
 from .models.base import BaseAdapter, clone_model
 from .models.catboost import CatBoostAdapter
 from .models.lightgbm import LightGBMRegressorAdapter
@@ -42,8 +46,10 @@ __all__ = [
     "CatBoostAdapter",
     "LightGBMRegressorAdapter",
     "ProphetAdapter",
+    "QSRIntervalPanelDemandSpecV1",
     "SarimaxAdapter",
     "XGBoostRegressorAdapter",
     "__version__",
     "clone_model",
+    "to_panel_demand_v1",
 ]

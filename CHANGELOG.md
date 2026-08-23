@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `__version__` on the package root.
+- Re-exported `QSRIntervalPanelDemandSpecV1` and `to_panel_demand_v1` from the package root.
 
 ### Changed
 
+- Pinned runtime floors `numpy>=1.24` and `pandas>=2.0`.
 - Removed type-checker narration comments; rephrased first-person docstrings.
 - Tightened README Overview; removed cloned Role section.
 - Dropped `_clone_model` from the public root `__all__`; use `clone_model`.
