@@ -32,7 +32,6 @@ dependencies = [
 
   # Electric Barometer compatibility band (0.2.x)
   "eb-metrics>=0.2,<0.3",
-  "eb-evaluation>=0.2,<0.3",
 ]
 
 ######################################
@@ -48,10 +47,16 @@ catboost = ["catboost>=1.2"]
 lightgbm = ["lightgbm>=4.0", "scikit-learn"]
 xgboost = ["xgboost>=2.0"]
 
+# CI / test-only dependencies (required by the hub typecheck gate extras: test)
+test = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+]
+
 # Local developer tooling
 dev = [
-  "pytest",
-  "pytest-cov",
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
   "mypy",
   "ruff",
 ]
@@ -71,9 +76,9 @@ all = [
   "xgboost>=2.0",
   "scikit-learn",
 
-  # Local developer tooling
-  "pytest",
-  "pytest-cov",
+  # Test + developer tooling
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
   "mypy",
   "ruff",
 ]
