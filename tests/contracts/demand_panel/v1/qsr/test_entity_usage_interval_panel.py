@@ -8,6 +8,9 @@ These tests validate that:
 - NULL demand is preserved (not imputed) by default
 - optional imputation (when enabled) only fills observable, non-structural intervals
 - custom column mapping via spec works
+- IS_TRAINABLE takes precedence for canonical is_observable
+- date and interval flags AND when IS_TRAINABLE is absent
+- warehouse observability columns are retained uncoerced
 """
 
 from __future__ import annotations
@@ -177,3 +180,54 @@ def test_adapter_falls_back_to_local_start_time_alias() -> None:
     panel = to_panel_demand_v1(df, spec=spec, validate=True)
     assert panel.time_mode == "timestamp"
     assert panel.ts_col == "LOCAL_START_TIME"
+
+
+def test_adapter_trainable_takes_precedence_over_observability_flags() -> None:
+    df = _make_base_frame()
+    df["IS_DATE_OBSERVABLE"] = ["TRUE", "TRUE", "FALSE"]
+    df["IS_TRAINABLE"] = ["FALSE", "TRUE", "TRUE"]
+
+    panel = to_panel_demand_v1(df, validate=False)
+    out = panel.frame
+
+    assert out["is_observable"].tolist() == [False, True, True]
+    assert out["is_possible"].tolist() == [False, True, True]
+
+
+def test_adapter_observable_is_conjunction_when_trainable_missing() -> None:
+    df = pd.DataFrame(
+        {
+            "STORE_ID": [101, 101, 101, 101],
+            "FORECAST_ENTITY_KEY": [1, 1, 1, 1],
+            "BUSINESS_DATE": ["2025-05-01"] * 4,
+            "INTERVAL_INDEX": [0, 1, 2, 3],
+            "FORECAST_ENTITY_DEMAND_QUANTITY": [1, 2, 3, 4],
+            "IS_INTERVAL_OBSERVABLE": ["TRUE", "TRUE", "FALSE", None],
+            "IS_DATE_OBSERVABLE": ["TRUE", "FALSE", "TRUE", "TRUE"],
+            "IS_STRUCTURAL_ZERO": [0, 0, 0, 0],
+        }
+    )
+
+    panel = to_panel_demand_v1(df, validate=False)
+    out = panel.frame
+
+    assert out["is_observable"].tolist() == [True, False, False, pd.NA]
+
+
+def test_adapter_retains_uncoerced_observability_metadata_columns() -> None:
+    df = _make_base_frame()
+    df["IS_DATE_OBSERVABLE"] = ["TRUE", "TRUE", "FALSE"]
+    df["IS_TRAINABLE"] = ["TRUE", None, "FALSE"]
+    interval_raw = df["IS_INTERVAL_OBSERVABLE"].tolist()
+    date_raw = df["IS_DATE_OBSERVABLE"].tolist()
+
+    panel = to_panel_demand_v1(df, validate=False)
+    out = panel.frame
+
+    assert "IS_INTERVAL_OBSERVABLE" in out.columns
+    assert "IS_DATE_OBSERVABLE" in out.columns
+    assert out["IS_INTERVAL_OBSERVABLE"].tolist() == interval_raw
+    assert out["IS_DATE_OBSERVABLE"].tolist() == date_raw
+    assert str(out["IS_INTERVAL_OBSERVABLE"].dtype) != "boolean"
+    assert str(out["IS_DATE_OBSERVABLE"].dtype) != "boolean"
+    assert out["is_observable"].tolist() == [True, pd.NA, False]

@@ -7,6 +7,9 @@ environment with fixed intraday intervals (e.g., QSR, retail, contact centers).
 
 The adapter:
 - normalizes source columns into canonical contract columns
+- maps ``IS_TRAINABLE`` (when present) to canonical ``is_observable``
+- otherwise derives ``is_observable`` from interval/date observability flags
+- retains warehouse observability columns as uncoerced metadata when present
 - preserves tri-state governance semantics for gates {True, False, NA}
 - preserves NULL demand semantics (no implicit imputation)
 - optionally imputes zero demand only for observable, non-structural intervals
@@ -56,7 +59,9 @@ class QSRIntervalPanelDemandSpecV1:
     y_source_col: str = "FORECAST_ENTITY_DEMAND_QUANTITY"
 
     # Governance gates (source columns)
-    # Interval-level observability is preferred; day-level is a fallback.
+    # Trainable is the primary canonical observability source when present.
+    # Interval- and date-level flags remain upstream metadata and a fallback.
+    is_trainable_col: str | None = "IS_TRAINABLE"
     is_interval_observable_col: str | None = "IS_INTERVAL_OBSERVABLE"
     is_day_observable_col: str | None = "IS_DATE_OBSERVABLE"
 
@@ -128,6 +133,42 @@ def _coerce_nullable_bool(series: pd.Series, name: str) -> pd.Series:
     return series.map(_map).astype("boolean")
 
 
+def _col_present(df: pd.DataFrame, col: str | None) -> bool:
+    return bool(col) and col in df.columns
+
+
+def _resolve_is_observable(df: pd.DataFrame, spec: QSRIntervalPanelDemandSpecV1) -> pd.Series:
+    """Resolve canonical ``is_observable`` from trainable, then observability flags.
+
+    Precedence:
+    1. ``is_trainable_col`` when present on the frame
+    2. Kleene AND of interval- and date-level flags when both columns exist
+    3. Whichever single observability column exists
+    """
+    if _col_present(df, spec.is_trainable_col):
+        return _coerce_nullable_bool(_series(df, str(spec.is_trainable_col)), "is_observable")
+
+    interval_col = spec.is_interval_observable_col
+    day_col = spec.is_day_observable_col
+    interval_present = _col_present(df, interval_col)
+    day_present = _col_present(df, day_col)
+
+    if interval_present and day_present:
+        interval = _coerce_nullable_bool(_series(df, str(interval_col)), str(interval_col))
+        day = _coerce_nullable_bool(_series(df, str(day_col)), str(day_col))
+        return (interval & day).astype("boolean")
+
+    if interval_present:
+        return _coerce_nullable_bool(_series(df, str(interval_col)), "is_observable")
+    if day_present:
+        return _coerce_nullable_bool(_series(df, str(day_col)), "is_observable")
+
+    raise ValueError(
+        "No observability column found. Provide is_trainable_col, "
+        "is_interval_observable_col, or is_day_observable_col in the spec."
+    )
+
+
 # -------------------------
 # Adapter
 # -------------------------
@@ -144,6 +185,9 @@ def to_panel_demand_v1(
 
     This function:
     - creates canonical contract columns: site_id, forecast_entity_id, y, gates
+    - maps ``IS_TRAINABLE`` to ``is_observable`` when present; otherwise uses
+      interval/date observability (AND when both exist, else the remaining flag)
+    - retains ``IS_DATE_OBSERVABLE`` and ``IS_INTERVAL_OBSERVABLE`` uncoerced
     - preserves NULL demand values by default
     - preserves tri-state gate semantics {True, False, NA}
     - optionally imputes y=0 only for observable, non-structural intervals
@@ -162,18 +206,8 @@ def to_panel_demand_v1(
     df["y"] = pd.to_numeric(y_raw, errors="coerce")
 
     # --- canonical governance gates (nullable booleans)
-    # Observability: prefer interval-level; fallback to day-level if needed.
-    src_obs_col: str | None = spec.is_interval_observable_col
-    if src_obs_col is None or src_obs_col not in df.columns:
-        src_obs_col = spec.is_day_observable_col
-
-    if not src_obs_col or src_obs_col not in df.columns:
-        raise ValueError(
-            "No observability column found. Provide is_interval_observable_col "
-            "or is_day_observable_col in the spec."
-        )
-
-    df["is_observable"] = _coerce_nullable_bool(_series(df, src_obs_col), "is_observable")
+    # Warehouse observability columns stay on the frame as uncoerced metadata.
+    df["is_observable"] = _resolve_is_observable(df, spec)
     df["is_structural_zero"] = _coerce_nullable_bool(
         _series(df, spec.is_structural_zero_col),
         "is_structural_zero",

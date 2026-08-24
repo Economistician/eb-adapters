@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- QSR interval adapter maps `IS_TRAINABLE` to canonical `is_observable` when present. Absent that column, `is_observable` is the Kleene AND of `IS_INTERVAL_OBSERVABLE` and `IS_DATE_OBSERVABLE` when both exist. Warehouse observability columns are retained uncoerced on the panel frame.
+
 ### Changed
 
 - QSR interval adapter source defaults now match the warehouse schema (`FORECAST_ENTITY_KEY`, `BUSINESS_DATE`, `INTERVAL_INDEX`, `INTERVAL_INDEX_START_TIME`, `FORECAST_ENTITY_DEMAND_QUANTITY`, `IS_DATE_OBSERVABLE`). `HALF_HOUR_NUMBER` and `LOCAL_START_TIME` remain accepted aliases.
