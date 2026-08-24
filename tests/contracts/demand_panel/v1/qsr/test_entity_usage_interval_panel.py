@@ -4,7 +4,7 @@ Unit tests for the QSR interval panel adapter.
 These tests validate that:
 - the adapter produces canonical columns
 - governance gates preserve tri-state semantics (True/False/NA)
-- unknown boolean tokens raise loudly
+- unknown boolean tokens coerce to NA rather than crashing ingest
 - NULL demand is preserved (not imputed) by default
 - optional imputation (when enabled) only fills observable, non-structural intervals
 - custom column mapping via spec works
@@ -17,7 +17,6 @@ These tests validate that:
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 
 from eb_adapters.contracts.demand_panel.v1.qsr.entity_usage_interval_panel import (
     QSRIntervalPanelDemandSpecV1,
@@ -85,12 +84,15 @@ def test_adapter_gates_are_nullable_booleans_and_preserve_na() -> None:
     assert out["is_structural_zero"].tolist() == [False, False, False]
 
 
-def test_adapter_raises_on_unknown_gate_token() -> None:
+def test_adapter_unknown_gate_token_coerces_to_na() -> None:
     df = _make_base_frame()
     df.loc[0, "IS_INTERVAL_OBSERVABLE"] = "MAYBE"
 
-    with pytest.raises(ValueError, match="Unrecognized boolean value"):
-        to_panel_demand_v1(df, validate=False)
+    panel = to_panel_demand_v1(df, validate=False)
+    out = panel.frame
+
+    assert pd.isna(out.loc[0, "is_observable"])
+    assert out.loc[0, "IS_INTERVAL_OBSERVABLE"] == "MAYBE"
 
 
 def test_adapter_preserves_null_y_by_default() -> None:

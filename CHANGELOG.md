@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - QSR interval adapter source defaults now match the warehouse schema (`FORECAST_ENTITY_KEY`, `BUSINESS_DATE`, `INTERVAL_INDEX`, `INTERVAL_INDEX_START_TIME`, `FORECAST_ENTITY_DEMAND_QUANTITY`, `IS_DATE_OBSERVABLE`). `HALF_HOUR_NUMBER` and `LOCAL_START_TIME` remain accepted aliases.
+- `_coerce_nullable_bool` maps unrecognized boolean tokens to `<NA>` instead of raising, so invalid gate strings cannot crash `to_panel_demand_v1`.
 
 ### Performance
 

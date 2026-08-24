@@ -112,13 +112,14 @@ def _series(df: pd.DataFrame, col: str) -> pd.Series:
     return s
 
 
-def _coerce_nullable_bool(series: pd.Series, name: str) -> pd.Series:
+def _coerce_nullable_bool(series: pd.Series, _name: str) -> pd.Series:
     """
     Coerce a series into pandas nullable boolean dtype ("boolean").
 
     Preserves tri-state semantics:
       - NA stays NA (unknown)
       - recognized true/false encodings map to True/False
+      - unrecognized tokens become NA (unknown) rather than raising
     """
     if series.dtype != object and (
         str(series.dtype) == "boolean" or pd.api.types.is_bool_dtype(series.dtype)
@@ -135,10 +136,6 @@ def _coerce_nullable_bool(series: pd.Series, name: str) -> pd.Series:
         false_mask = false_mask.copy()
         true_mask.loc[remaining] = lowered.isin({"true", "t", "1"}).to_numpy()
         false_mask.loc[remaining] = lowered.isin({"false", "f", "0"}).to_numpy()
-        remaining = ~na_mask & ~true_mask & ~false_mask
-    if bool(remaining.any()):
-        v = series.loc[remaining].iloc[0]
-        raise ValueError(f"Unrecognized boolean value in {name!r}: {v!r}")
 
     out = pd.Series(pd.NA, index=series.index, dtype="boolean")
     out = out.mask(true_mask.fillna(False), True)
