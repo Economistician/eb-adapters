@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `to_panel_demand_v1` copies only spec-referenced source columns from the warehouse frame.
 - `_coerce_nullable_bool` uses `Series.isin` / boolean masks instead of a Python per-cell map.
+- `to_panel_demand_v1` projects source columns without a defensive deep copy; string-coercion of bool encodings runs only on values still unrecognized after `isin()`.
+- `impute_zero_when_observable` uses `Series.where` instead of chained `.loc` / `.fillna`.
 
 ## [0.2.4] - 2026-08-23
 

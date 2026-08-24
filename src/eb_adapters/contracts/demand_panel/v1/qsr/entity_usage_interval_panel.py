@@ -128,12 +128,16 @@ def _coerce_nullable_bool(series: pd.Series, name: str) -> pd.Series:
     na_mask = series.isna()
     true_mask = series.isin(_TRUE_VALUES)
     false_mask = series.isin(_FALSE_VALUES)
-    lowered = series.astype("string").str.lower()
-    true_mask = true_mask | lowered.isin({"true", "t", "1"})
-    false_mask = false_mask | lowered.isin({"false", "f", "0"})
-    unrecognized = ~na_mask & ~true_mask & ~false_mask
-    if bool(unrecognized.any()):
-        v = series.loc[unrecognized].iloc[0]
+    remaining = ~na_mask & ~true_mask & ~false_mask
+    if bool(remaining.any()):
+        lowered = series.loc[remaining].astype("string").str.lower()
+        true_mask = true_mask.copy()
+        false_mask = false_mask.copy()
+        true_mask.loc[remaining] = lowered.isin({"true", "t", "1"}).to_numpy()
+        false_mask.loc[remaining] = lowered.isin({"false", "f", "0"}).to_numpy()
+        remaining = ~na_mask & ~true_mask & ~false_mask
+    if bool(remaining.any()):
+        v = series.loc[remaining].iloc[0]
         raise ValueError(f"Unrecognized boolean value in {name!r}: {v!r}")
 
     out = pd.Series(pd.NA, index=series.index, dtype="boolean")
@@ -248,7 +252,7 @@ def to_panel_demand_v1(
         spec = QSRIntervalPanelDemandSpecV1()
 
     source_cols = _spec_source_columns(frame, spec)
-    df = frame.loc[:, source_cols].copy() if source_cols else frame.iloc[:, 0:0].copy()
+    df = frame.loc[:, source_cols] if source_cols else frame.iloc[:, 0:0].copy()
 
     # --- canonical identity
     df["site_id"] = _series(df, spec.site_col)
@@ -277,7 +281,8 @@ def to_panel_demand_v1(
         obs = df["is_observable"]
         structural = df["is_structural_zero"]
         mask = (obs == True) & (structural != True)  # noqa: E712
-        df.loc[mask, "y"] = df.loc[mask, "y"].fillna(0)
+        y = df["y"]
+        df["y"] = y.where(~(mask.fillna(False) & y.isna()), 0.0)
 
     # --- build contract
     time_mode = spec.time_mode
