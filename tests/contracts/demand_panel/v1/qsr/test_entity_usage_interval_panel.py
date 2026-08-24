@@ -11,6 +11,7 @@ These tests validate that:
 - IS_TRAINABLE takes precedence for canonical is_observable
 - date and interval flags AND when IS_TRAINABLE is absent
 - warehouse observability columns are retained uncoerced
+- IS_STRUCTURAL_ZERO may be omitted; canonical is_structural_zero defaults to False
 """
 
 from __future__ import annotations
@@ -231,3 +232,25 @@ def test_adapter_retains_uncoerced_observability_metadata_columns() -> None:
     assert str(out["IS_INTERVAL_OBSERVABLE"].dtype) != "boolean"
     assert str(out["IS_DATE_OBSERVABLE"].dtype) != "boolean"
     assert out["is_observable"].tolist() == [True, pd.NA, False]
+
+
+def test_adapter_defaults_structural_zero_when_source_column_missing() -> None:
+    df = _make_base_frame().drop(columns=["IS_STRUCTURAL_ZERO"])
+
+    panel = to_panel_demand_v1(df, validate=True)
+    out = panel.frame
+
+    assert "IS_STRUCTURAL_ZERO" not in out.columns
+    assert str(out["is_structural_zero"].dtype) == "boolean"
+    assert out["is_structural_zero"].tolist() == [False, False, False]
+
+
+def test_adapter_ignores_structural_zero_column_when_spec_is_none() -> None:
+    df = _make_base_frame()
+    df["IS_STRUCTURAL_ZERO"] = [1, 0, 0]
+    spec = QSRIntervalPanelDemandSpecV1(is_structural_zero_col=None)
+
+    panel = to_panel_demand_v1(df, spec=spec, validate=True)
+    out = panel.frame
+
+    assert out["is_structural_zero"].tolist() == [False, False, False]

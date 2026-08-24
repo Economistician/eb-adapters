@@ -65,7 +65,8 @@ class QSRIntervalPanelDemandSpecV1:
     is_interval_observable_col: str | None = "IS_INTERVAL_OBSERVABLE"
     is_day_observable_col: str | None = "IS_DATE_OBSERVABLE"
 
-    is_structural_zero_col: str = "IS_STRUCTURAL_ZERO"
+    # Optional: mapped when present; otherwise canonical is_structural_zero is False.
+    is_structural_zero_col: str | None = "IS_STRUCTURAL_ZERO"
 
     # Optional: if provided, mapped to canonical "is_possible"; otherwise derived.
     is_possible_col: str | None = None
@@ -169,6 +170,22 @@ def _resolve_is_observable(df: pd.DataFrame, spec: QSRIntervalPanelDemandSpecV1)
     )
 
 
+def _resolve_is_structural_zero(df: pd.DataFrame, spec: QSRIntervalPanelDemandSpecV1) -> pd.Series:
+    """Resolve canonical ``is_structural_zero``.
+
+    Uses ``is_structural_zero_col`` when that column is present. Otherwise fills
+    False so frames without the warehouse flag still satisfy PanelDemandV1.
+    Unobservable rows are not inferred as structural zeros: that would require
+    null ``y`` and fail validation when demand is present.
+    """
+    if _col_present(df, spec.is_structural_zero_col):
+        return _coerce_nullable_bool(
+            _series(df, str(spec.is_structural_zero_col)),
+            "is_structural_zero",
+        )
+    return pd.Series(False, index=df.index, dtype="boolean")
+
+
 # -------------------------
 # Adapter
 # -------------------------
@@ -188,6 +205,7 @@ def to_panel_demand_v1(
     - maps ``IS_TRAINABLE`` to ``is_observable`` when present; otherwise uses
       interval/date observability (AND when both exist, else the remaining flag)
     - retains ``IS_DATE_OBSERVABLE`` and ``IS_INTERVAL_OBSERVABLE`` uncoerced
+    - maps ``IS_STRUCTURAL_ZERO`` when present; otherwise ``is_structural_zero`` is False
     - preserves NULL demand values by default
     - preserves tri-state gate semantics {True, False, NA}
     - optionally imputes y=0 only for observable, non-structural intervals
@@ -208,10 +226,7 @@ def to_panel_demand_v1(
     # --- canonical governance gates (nullable booleans)
     # Warehouse observability columns stay on the frame as uncoerced metadata.
     df["is_observable"] = _resolve_is_observable(df, spec)
-    df["is_structural_zero"] = _coerce_nullable_bool(
-        _series(df, spec.is_structural_zero_col),
-        "is_structural_zero",
-    )
+    df["is_structural_zero"] = _resolve_is_structural_zero(df, spec)
 
     # is_possible: optional override; otherwise default to is_observable
     if spec.is_possible_col and spec.is_possible_col in df.columns:
