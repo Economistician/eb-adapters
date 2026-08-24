@@ -25,11 +25,11 @@ def _make_base_frame() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "STORE_ID": [101, 101, 101],
-            "FORECAST_ENTITY_ID": [1, 1, 1],
-            "BUSINESS_DAY": ["2025-05-01", "2025-05-01", "2025-05-01"],
-            "INTERVAL_30_INDEX": [0, 1, 2],
+            "FORECAST_ENTITY_KEY": [1, 1, 1],
+            "BUSINESS_DATE": ["2025-05-01", "2025-05-01", "2025-05-01"],
+            "INTERVAL_INDEX": [0, 1, 2],
             # Use the DDL-aligned default for the adapter/spec
-            "LABEL_COMMODITY_USAGE_QTY": [None, 4, 8],
+            "FORECAST_ENTITY_DEMAND_QUANTITY": [None, 4, 8],
             # Gate tokens include strings and nulls to verify tri-state behavior
             "IS_INTERVAL_OBSERVABLE": ["TRUE", None, "FALSE"],
             "IS_STRUCTURAL_ZERO": [0, 0, 0],
@@ -104,16 +104,16 @@ def test_adapter_optional_impute_zero_only_when_observable_and_not_structural() 
 
     # Make row0 observable True + y null -> should impute to 0 when enabled
     df.loc[0, "IS_INTERVAL_OBSERVABLE"] = "TRUE"
-    df.loc[0, "LABEL_COMMODITY_USAGE_QTY"] = None
+    df.loc[0, "FORECAST_ENTITY_DEMAND_QUANTITY"] = None
 
     # Make row1 observable NA + y null -> should remain NA
     df.loc[1, "IS_INTERVAL_OBSERVABLE"] = None
-    df.loc[1, "LABEL_COMMODITY_USAGE_QTY"] = None
+    df.loc[1, "FORECAST_ENTITY_DEMAND_QUANTITY"] = None
 
     # Make row2 structural True + y null + observable True -> should NOT impute
     df.loc[2, "IS_STRUCTURAL_ZERO"] = 1
     df.loc[2, "IS_INTERVAL_OBSERVABLE"] = "TRUE"
-    df.loc[2, "LABEL_COMMODITY_USAGE_QTY"] = None
+    df.loc[2, "FORECAST_ENTITY_DEMAND_QUANTITY"] = None
 
     spec = QSRIntervalPanelDemandSpecV1(impute_zero_when_observable=True)
 
@@ -129,10 +129,10 @@ def test_adapter_supports_custom_column_mapping_via_spec() -> None:
     df = _make_base_frame().rename(
         columns={
             "STORE_ID": "site",
-            "FORECAST_ENTITY_ID": "entity",
-            "BUSINESS_DAY": "day",
-            "INTERVAL_30_INDEX": "idx",
-            "LABEL_COMMODITY_USAGE_QTY": "usage",
+            "FORECAST_ENTITY_KEY": "entity",
+            "BUSINESS_DATE": "day",
+            "INTERVAL_INDEX": "idx",
+            "FORECAST_ENTITY_DEMAND_QUANTITY": "usage",
             "IS_INTERVAL_OBSERVABLE": "obs",
             "IS_STRUCTURAL_ZERO": "struct0",
         }
@@ -157,3 +157,23 @@ def test_adapter_supports_custom_column_mapping_via_spec() -> None:
     out = panel.frame
     assert out["site_id"].tolist() == [101, 101, 101]
     assert out["forecast_entity_id"].tolist() == [1, 1, 1]
+
+
+def test_adapter_falls_back_to_half_hour_number_alias() -> None:
+    df = _make_base_frame().rename(columns={"INTERVAL_INDEX": "HALF_HOUR_NUMBER"})
+    panel = to_panel_demand_v1(df, validate=True)
+    assert panel.interval_index_col == "HALF_HOUR_NUMBER"
+    assert panel.frame["HALF_HOUR_NUMBER"].tolist() == [0, 1, 2]
+
+
+def test_adapter_falls_back_to_local_start_time_alias() -> None:
+    df = _make_base_frame()
+    df["LOCAL_START_TIME"] = [
+        "2025-05-01 04:00:00",
+        "2025-05-01 04:30:00",
+        "2025-05-01 05:00:00",
+    ]
+    spec = QSRIntervalPanelDemandSpecV1(time_mode="timestamp")
+    panel = to_panel_demand_v1(df, spec=spec, validate=True)
+    assert panel.time_mode == "timestamp"
+    assert panel.ts_col == "LOCAL_START_TIME"

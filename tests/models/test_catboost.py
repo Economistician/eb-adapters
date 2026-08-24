@@ -72,7 +72,7 @@ def test_catboost_adapter_supports_dataframe_categoricals_via_names() -> None:
         {
             "STORE_AGE_BUCKET": ["LEGACY", "MATURE", "NEW", "EARLY", "LEGACY"],
             "STATE": ["FL", "FL", "TX", "TX", "FL"],
-            "INTERVAL_30_INDEX": [0, 1, 2, 3, 4],
+            "INTERVAL_INDEX": [0, 1, 2, 3, 4],
             "LAG_1_COMMODITY_USAGE_QTY": rng.integers(0, 5, size=5).astype(float),
             "HAS_LAG_1_COMMODITY_USAGE_QTY": [1, 1, 0, 1, 0],
         }

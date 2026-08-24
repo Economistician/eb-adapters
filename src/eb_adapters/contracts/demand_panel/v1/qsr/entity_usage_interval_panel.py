@@ -25,22 +25,26 @@ from eb_contracts.contracts.demand_panel.v1.panel_demand import PanelDemandV1
 # -------------------------
 
 
+_INTERVAL_INDEX_ALIASES: tuple[str, ...] = ("HALF_HOUR_NUMBER",)
+_INTERVAL_START_TIME_ALIASES: tuple[str, ...] = ("LOCAL_START_TIME",)
+
+
 @dataclass(frozen=True, slots=True)
 class QSRIntervalPanelDemandSpecV1:
     """Column and semantic mapping for a QSR-style interval demand panel."""
 
     # Identity (source columns)
     site_col: str = "STORE_ID"
-    forecast_entity_col: str = "FORECAST_ENTITY_ID"
+    forecast_entity_col: str = "FORECAST_ENTITY_KEY"
 
     # Time (source columns)
-    # Default to day-interval mode (business day + interval index).
+    # Default to day-interval mode (business date + interval index).
     time_mode: str = "day_interval"
-    business_day_col: str | None = "BUSINESS_DAY"
-    interval_index_col: str | None = "INTERVAL_30_INDEX"
+    business_day_col: str | None = "BUSINESS_DATE"
+    interval_index_col: str | None = "INTERVAL_INDEX"
 
     # Optional timestamp column (may exist even in day_interval mode)
-    interval_start_ts_col: str | None = "INTERVAL_START_TS"
+    interval_start_ts_col: str | None = "INTERVAL_INDEX_START_TIME"
 
     # Interval metadata
     interval_minutes: int = 30
@@ -49,12 +53,12 @@ class QSRIntervalPanelDemandSpecV1:
 
     # Target (source column)
     # Matches your DDL; override if your table uses a different name.
-    y_source_col: str = "LABEL_COMMODITY_USAGE_QTY"
+    y_source_col: str = "FORECAST_ENTITY_DEMAND_QUANTITY"
 
     # Governance gates (source columns)
     # Interval-level observability is preferred; day-level is a fallback.
     is_interval_observable_col: str | None = "IS_INTERVAL_OBSERVABLE"
-    is_day_observable_col: str | None = "IS_DAY_OBSERVABLE"
+    is_day_observable_col: str | None = "IS_DATE_OBSERVABLE"
 
     is_structural_zero_col: str = "IS_STRUCTURAL_ZERO"
 
@@ -71,6 +75,24 @@ class QSRIntervalPanelDemandSpecV1:
 
 _TRUE_VALUES = {"true", "t", "1", 1}
 _FALSE_VALUES = {"false", "f", "0", 0}
+
+
+def _resolve_source_col(
+    df: pd.DataFrame,
+    primary: str | None,
+    aliases: tuple[str, ...],
+    *,
+    required: bool,
+    label: str,
+) -> str | None:
+    """Return the first present source column among ``primary`` then ``aliases``."""
+    candidates = [c for c in (primary, *aliases) if c]
+    for col in candidates:
+        if col in df.columns:
+            return col
+    if required:
+        raise ValueError(f"No {label} column found. Tried: {candidates}.")
+    return None
 
 
 def _series(df: pd.DataFrame, col: str) -> pd.Series:
@@ -175,9 +197,23 @@ def to_panel_demand_v1(
 
     # --- build contract
     time_mode = spec.time_mode
+    interval_index_col = _resolve_source_col(
+        df,
+        spec.interval_index_col,
+        _INTERVAL_INDEX_ALIASES,
+        required=time_mode == "day_interval",
+        label="interval index",
+    )
+    interval_start_ts_col = _resolve_source_col(
+        df,
+        spec.interval_start_ts_col,
+        _INTERVAL_START_TIME_ALIASES,
+        required=time_mode == "timestamp",
+        label="interval start timestamp",
+    )
 
     if time_mode == "day_interval":
-        if not spec.business_day_col or not spec.interval_index_col:
+        if not spec.business_day_col or not interval_index_col:
             raise ValueError(
                 "time_mode='day_interval' requires business_day_col and interval_index_col."
             )
@@ -188,8 +224,8 @@ def to_panel_demand_v1(
             y_col="y",
             time_mode="day_interval",
             day_col=spec.business_day_col,
-            interval_index_col=spec.interval_index_col,
-            ts_col=spec.interval_start_ts_col if spec.interval_start_ts_col in df.columns else None,
+            interval_index_col=interval_index_col,
+            ts_col=interval_start_ts_col,
             interval_minutes=spec.interval_minutes,
             periods_per_day=spec.periods_per_day,
             business_day_start_local_minutes=spec.business_day_start_local_minutes,
@@ -200,7 +236,7 @@ def to_panel_demand_v1(
         )
 
     if time_mode == "timestamp":
-        if not spec.interval_start_ts_col or spec.interval_start_ts_col not in df.columns:
+        if not interval_start_ts_col:
             raise ValueError("time_mode='timestamp' requires interval_start_ts_col in the frame.")
 
         return PanelDemandV1.from_frame(
@@ -208,7 +244,7 @@ def to_panel_demand_v1(
             keys=["site_id", "forecast_entity_id"],
             y_col="y",
             time_mode="timestamp",
-            ts_col=spec.interval_start_ts_col,
+            ts_col=interval_start_ts_col,
             is_observable_col="is_observable",
             is_possible_col="is_possible",
             is_structural_zero_col="is_structural_zero",
