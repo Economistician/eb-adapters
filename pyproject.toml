@@ -3,7 +3,7 @@
 ######################################
 [project]
 name = "eb-adapters"
-version = "0.2.4"
+version = "0.2.5"
 description = "Adapter layer for third-party forecasting libraries in Electric Barometer"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,9 +29,9 @@ dependencies = [
   "numpy>=1.24",
   "pandas>=2.0",
 
-  # Electric Barometer System Release 0.2.9 pins
-  "eb-metrics==0.2.8",
-  "eb-contracts==0.2.2",
+  # Electric Barometer System Release 0.2.10 pins
+  "eb-metrics==0.2.9",
+  "eb-contracts==0.2.3",
 ]
 
 ######################################
