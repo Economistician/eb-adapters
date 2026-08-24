@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - QSR interval adapter source defaults now match the warehouse schema (`FORECAST_ENTITY_KEY`, `BUSINESS_DATE`, `INTERVAL_INDEX`, `INTERVAL_INDEX_START_TIME`, `FORECAST_ENTITY_DEMAND_QUANTITY`, `IS_DATE_OBSERVABLE`). `HALF_HOUR_NUMBER` and `LOCAL_START_TIME` remain accepted aliases.
 
+### Performance
+
+- `to_panel_demand_v1` copies only spec-referenced source columns from the warehouse frame.
+- `_coerce_nullable_bool` uses `Series.isin` / boolean masks instead of a Python per-cell map.
+
 ## [0.2.4] - 2026-08-23
 
 ### Changed

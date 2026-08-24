@@ -120,18 +120,52 @@ def _coerce_nullable_bool(series: pd.Series, name: str) -> pd.Series:
       - NA stays NA (unknown)
       - recognized true/false encodings map to True/False
     """
+    if series.dtype != object and (
+        str(series.dtype) == "boolean" or pd.api.types.is_bool_dtype(series.dtype)
+    ):
+        return series.astype("boolean")
 
-    def _map(v):
-        if pd.isna(v):
-            return pd.NA
-        v_norm = v.lower() if isinstance(v, str) else v
-        if v_norm in _TRUE_VALUES:
-            return True
-        if v_norm in _FALSE_VALUES:
-            return False
+    na_mask = series.isna()
+    true_mask = series.isin(_TRUE_VALUES)
+    false_mask = series.isin(_FALSE_VALUES)
+    lowered = series.astype("string").str.lower()
+    true_mask = true_mask | lowered.isin({"true", "t", "1"})
+    false_mask = false_mask | lowered.isin({"false", "f", "0"})
+    unrecognized = ~na_mask & ~true_mask & ~false_mask
+    if bool(unrecognized.any()):
+        v = series.loc[unrecognized].iloc[0]
         raise ValueError(f"Unrecognized boolean value in {name!r}: {v!r}")
 
-    return series.map(_map).astype("boolean")
+    out = pd.Series(pd.NA, index=series.index, dtype="boolean")
+    out = out.mask(true_mask.fillna(False), True)
+    out = out.mask(false_mask.fillna(False), False)
+    return out.astype("boolean")
+
+
+def _spec_source_columns(frame: pd.DataFrame, spec: QSRIntervalPanelDemandSpecV1) -> list[str]:
+    """Return spec-referenced source columns present on ``frame``, in first-seen order."""
+    candidates = [
+        spec.site_col,
+        spec.forecast_entity_col,
+        spec.y_source_col,
+        spec.business_day_col,
+        spec.interval_index_col,
+        spec.interval_start_ts_col,
+        spec.is_trainable_col,
+        spec.is_interval_observable_col,
+        spec.is_day_observable_col,
+        spec.is_structural_zero_col,
+        spec.is_possible_col,
+        *_INTERVAL_INDEX_ALIASES,
+        *_INTERVAL_START_TIME_ALIASES,
+    ]
+    cols: list[str] = []
+    seen: set[str] = set()
+    for col in candidates:
+        if col and col in frame.columns and col not in seen:
+            cols.append(col)
+            seen.add(col)
+    return cols
 
 
 def _col_present(df: pd.DataFrame, col: str | None) -> bool:
@@ -213,7 +247,8 @@ def to_panel_demand_v1(
     if spec is None:
         spec = QSRIntervalPanelDemandSpecV1()
 
-    df = frame.copy()
+    source_cols = _spec_source_columns(frame, spec)
+    df = frame.loc[:, source_cols].copy() if source_cols else frame.iloc[:, 0:0].copy()
 
     # --- canonical identity
     df["site_id"] = _series(df, spec.site_col)
