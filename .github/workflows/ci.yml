@@ -36,4 +36,5 @@ jobs:
       run_precommit: true
       enable_typecheck: true
       import_module: "eb_adapters"
+      # extras: all installs exact sibling pins from PyPI (eb-metrics, eb-contracts).
       extras: "all"
